@@ -22,7 +22,7 @@ const camera = new THREE.PerspectiveCamera(
   0.01,
   1000
 );
-camera.position.set(0, 0, 4);
+camera.position.set(0, 0, 2);
 
 // ── Controls ───────────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -33,7 +33,7 @@ controls.zoomSpeed = 0.7;
 controls.minDistance = 0.5;
 controls.maxDistance = 20;
 controls.autoRotate = true;
-controls.autoRotateSpeed = 0.35;
+controls.autoRotateSpeed = 0.06;
 controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
@@ -47,6 +47,19 @@ scene.add(rimLight);
 const fillLight = new THREE.DirectionalLight(0x332211, 0.5);
 fillLight.position.set(4, -1, 3);
 scene.add(fillLight);
+
+// ── Breathing / presence state ─────────────────────────────────────────────
+// Holds the live model (or fallback mesh) once loaded, for scale animation.
+let breathingModel     = null;
+let breathingBaseScale = 1;
+
+const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
+                                    // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
+const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
+const BREATH_EXPOSURE_BASE = 0.6;
+const BREATH_EXPOSURE_AMP  = 0.04;  // ±0.04 exposure – subliminal light variation
+// 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
+const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
 
 // ── Load model ─────────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
@@ -66,9 +79,12 @@ loader.load(
     model.scale.setScalar(scale);
     scene.add(model);
 
-    // Fit camera
+    breathingModel     = model;
+    breathingBaseScale = scale;
+
+    // Fit camera – pull in closer for a more intimate view
     controls.target.set(0, 0, 0);
-    camera.position.set(0, 0, 3);
+    camera.position.set(0, 0, 2);
     controls.update();
 
     fadeIn();
@@ -85,6 +101,9 @@ loader.load(
     });
     const mesh = new THREE.Mesh(geo, mat);
     scene.add(mesh);
+
+    breathingModel     = mesh;
+    breathingBaseScale = 0.8; // matches SphereGeometry radius
     fadeIn();
   }
 );
@@ -92,20 +111,33 @@ loader.load(
 // ── Fade-in ────────────────────────────────────────────────────────────────
 function fadeIn() {
   container.classList.add('visible');
-  document.getElementById('hint').classList.add('visible');
 }
 
 // ── Slow organic drift ─────────────────────────────────────────────────────
-const SWAY_FREQUENCY = 0.4;   // oscillation speed (rad/s equivalent)
-const SWAY_AMPLITUDE = 0.12;  // vertical displacement in world units
+const SWAY_AMPLITUDE_Y  = 0.18;  // vertical displacement
+const SWAY_AMPLITUDE_X  = 0.08;  // lateral displacement
+const SWAY_FREQUENCY_Y  = 0.7;   // Y oscillation (rad / time-unit)
+const SWAY_FREQUENCY_X  = 0.4;   // X oscillation – different rate for organic feel
 
 let time = 0;
 function animate() {
   requestAnimationFrame(animate);
-  time += 0.003;
+  time += 0.0008;
 
-  // Gentle camera sway when auto-rotating
-  camera.position.y = Math.sin(time * SWAY_FREQUENCY) * SWAY_AMPLITUDE;
+  // Gentle multi-axis camera drift – gives a "floating in the void" feel
+  camera.position.y = Math.sin(time * SWAY_FREQUENCY_Y) * SWAY_AMPLITUDE_Y;
+  camera.position.x = Math.sin(time * SWAY_FREQUENCY_X) * SWAY_AMPLITUDE_X;
+
+  // Micro "breathing" – imperceptible scale pulse
+  if (breathingModel) {
+    breathingModel.scale.setScalar(
+      breathingBaseScale * (1 + Math.sin(time * BREATH_FREQUENCY) * BREATH_SCALE_AMP)
+    );
+  }
+
+  // Subtle exposure drift – almost invisible light variation
+  renderer.toneMappingExposure =
+    BREATH_EXPOSURE_BASE + Math.sin(time * BREATH_EXPOSURE_FREQ) * BREATH_EXPOSURE_AMP;
 
   controls.update();
   renderer.render(scene, camera);
