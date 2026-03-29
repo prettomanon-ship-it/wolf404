@@ -22,7 +22,7 @@ const camera = new THREE.PerspectiveCamera(
   0.01,
   1000
 );
-camera.position.set(0, 0, 4);
+camera.position.set(0, 0, 2);
 
 // ── Controls ───────────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -33,7 +33,7 @@ controls.zoomSpeed = 0.7;
 controls.minDistance = 0.5;
 controls.maxDistance = 20;
 controls.autoRotate = true;
-controls.autoRotateSpeed = 0.35;
+controls.autoRotateSpeed = 0.06;
 controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
@@ -66,9 +66,9 @@ loader.load(
     model.scale.setScalar(scale);
     scene.add(model);
 
-    // Fit camera
+    // Fit camera – pull in closer for a more intimate view
     controls.target.set(0, 0, 0);
-    camera.position.set(0, 0, 3);
+    camera.position.set(0, 0, 2);
     controls.update();
 
     fadeIn();
@@ -92,20 +92,22 @@ loader.load(
 // ── Fade-in ────────────────────────────────────────────────────────────────
 function fadeIn() {
   container.classList.add('visible');
-  document.getElementById('hint').classList.add('visible');
 }
 
 // ── Slow organic drift ─────────────────────────────────────────────────────
-const SWAY_FREQUENCY = 0.4;   // oscillation speed (rad/s equivalent)
-const SWAY_AMPLITUDE = 0.12;  // vertical displacement in world units
+const SWAY_AMPLITUDE_Y  = 0.18;  // vertical displacement
+const SWAY_AMPLITUDE_X  = 0.08;  // lateral displacement
+const SWAY_FREQUENCY_Y  = 0.7;   // Y oscillation (rad / time-unit)
+const SWAY_FREQUENCY_X  = 0.4;   // X oscillation – different rate for organic feel
 
 let time = 0;
 function animate() {
   requestAnimationFrame(animate);
-  time += 0.003;
+  time += 0.0008;
 
-  // Gentle camera sway when auto-rotating
-  camera.position.y = Math.sin(time * SWAY_FREQUENCY) * SWAY_AMPLITUDE;
+  // Gentle multi-axis camera drift – gives a "floating in the void" feel
+  camera.position.y = Math.sin(time * SWAY_FREQUENCY_Y) * SWAY_AMPLITUDE_Y;
+  camera.position.x = Math.sin(time * SWAY_FREQUENCY_X) * SWAY_AMPLITUDE_X;
 
   controls.update();
   renderer.render(scene, camera);

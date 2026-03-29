@@ -29,22 +29,3 @@ canvas {
   width: 100% !important;
   height: 100% !important;
 }
-
-#hint {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.18);
-  user-select: none;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 3s ease 3s;
-}
-
-#hint.visible {
-  opacity: 1;
-}
