@@ -17,7 +17,7 @@ html, body {
   position: fixed;
   inset: 0;
   opacity: 0;
-  transition: opacity 2.4s ease;
+  transition: opacity 6s ease;
 }
 
 #canvas-container.visible {
