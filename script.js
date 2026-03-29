@@ -74,13 +74,15 @@ loader.load(
 
     // Center and normalize scale
     const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const scale = 2 / maxDim;
 
-    model.position.sub(center);
+    // Apply scale first, then recompute center so the offset is correct
     model.scale.setScalar(scale);
+    const scaledBox = new THREE.Box3().setFromObject(model);
+    const center = scaledBox.getCenter(new THREE.Vector3());
+    model.position.sub(center);
     scene.add(model);
 
     breathingModel     = model;
@@ -95,19 +97,8 @@ loader.load(
   },
   undefined,
   () => {
-    // Model not found – still show the empty scene with a soft sphere stand-in
-    const geo = new THREE.SphereGeometry(0.8, 48, 48);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      roughness: 0.9,
-      metalness: 0.1,
-      wireframe: false,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    scene.add(mesh);
-
-    breathingModel     = mesh;
-    breathingBaseScale = 0.8; // matches SphereGeometry radius
+    // Model failed to load – fade in the empty dark scene rather than
+    // showing a placeholder that could be mistaken for the real content.
     fadeIn();
   }
 );
