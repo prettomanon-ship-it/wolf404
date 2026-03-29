@@ -70,13 +70,14 @@ const loader = new GLTFLoader();
 loader.load(
   'embryon404_cable_texture-v1.glb',
   (gltf) => {
+    console.log('GLB model loaded successfully', gltf);
     const model = gltf.scene;
 
     // Center and normalize scale
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 2 / maxDim;
+    const scale = maxDim > 0 ? 2 / maxDim : 1;
 
     // Apply scale first, then recompute center so the offset is correct
     model.scale.setScalar(scale);
@@ -84,6 +85,7 @@ loader.load(
     const center = scaledBox.getCenter(new THREE.Vector3());
     model.position.sub(center);
     scene.add(model);
+    console.log('Model added to scene. Scale:', scale, 'Position:', model.position);
 
     breathingModel     = model;
     breathingBaseScale = scale;
@@ -96,9 +98,8 @@ loader.load(
     fadeIn();
   },
   undefined,
-  () => {
-    // Model failed to load – fade in the empty dark scene rather than
-    // showing a placeholder that could be mistaken for the real content.
+  (error) => {
+    console.error('Failed to load GLB model:', error);
     fadeIn();
   }
 );
