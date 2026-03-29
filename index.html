@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wolf404</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 1.8s ease;
+    }
+
+    #canvas-container.visible {
+      opacity: 1;
+    }
+
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Subtle overlay vignette */
+    #vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 40%,
+        rgba(0, 0, 0, 0.75) 100%
+      );
+      z-index: 10;
+    }
+
+    /* Minimal UI */
+    #ui {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      gap: 2rem;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    #ui.visible {
+      opacity: 1;
+    }
+
+    .model-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.25);
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      padding: 0.4rem 0.2rem;
+      transition: color 0.6s ease;
+    }
+
+    .model-btn:hover,
+    .model-btn.active {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Loading / error state */
+    #status {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      color: rgba(255, 255, 255, 0.15);
+      pointer-events: none;
+      transition: opacity 1s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container">
+    <canvas id="scene"></canvas>
+  </div>
+
+  <div id="vignette"></div>
+
+  <div id="status">—</div>
+
+  <div id="ui">
+    <button class="model-btn" data-model="foetus" aria-label="foetus">foetus</button>
+    <button class="model-btn" data-model="wolf" aria-label="wolf">wolf</button>
+  </div>
+
+  <!-- Three.js r165 via CDN -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ---- Scene setup ---- */
+    const container = document.getElementById('canvas-container');
+    const canvas    = document.getElementById('scene');
+    const status    = document.getElementById('status');
+    const ui        = document.getElementById('ui');
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.6;
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
+    camera.position.set(0, 0, 3);
+
+    /* ---- Lighting — minimal, cold ---- */
+    const ambient = new THREE.AmbientLight(0xffffff, 0.08);
+    scene.add(ambient);
+
+    const rimLight = new THREE.DirectionalLight(0xaaddff, 0.4);
+    rimLight.position.set(-3, 2, -3);
+    scene.add(rimLight);
+
+    const fillLight = new THREE.DirectionalLight(0x334455, 0.2);
+    fillLight.position.set(3, -1, 2);
+    scene.add(fillLight);
+
+    /* ---- Controls ---- */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping    = true;
+    controls.dampingFactor    = 0.04;
+    controls.enablePan        = false;
+    controls.minDistance      = 0.5;
+    controls.maxDistance      = 12;
+    controls.autoRotate       = true;
+    controls.autoRotateSpeed  = 0.25;   // slow, organic
+
+    /* ---- Model state ---- */
+    const MODELS = ['foetus', 'wolf'];
+    let currentGroup = null;
+    let fadingOut    = null;
+    let currentModel = null;
+
+    const loader = new GLTFLoader();
+
+    function setStatus(msg) {
+      status.textContent = msg;
+      status.style.opacity = '1';
+    }
+
+    function clearStatus() {
+      status.style.opacity = '0';
+    }
+
+    function setActiveBtn(name) {
+      document.querySelectorAll('.model-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.model === name);
+      });
+    }
+
+    function centerModel(group) {
+      const box    = new THREE.Box3().setFromObject(group);
+      const center = new THREE.Vector3();
+      const size   = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+
+      group.position.sub(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov    = camera.fov * (Math.PI / 180);
+      let   dist   = (maxDim / 2) / Math.tan(fov / 2);
+      dist *= 1.6;
+
+      camera.position.set(0, 0, dist);
+      controls.minDistance = dist * 0.15;
+      controls.maxDistance = dist * 5;
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function loadModel(name) {
+      if (name === currentModel) return;
+      currentModel = name;
+      setActiveBtn(name);
+      setStatus('—');
+
+      // Fade out the current model
+      if (currentGroup) {
+        fadingOut = currentGroup;
+        currentGroup = null;
+      }
+
+      loader.load(
+        `./${name}.glb`,
+        (gltf) => {
+          const group = gltf.scene;
+
+          // Tweak materials for dark organic look
+          group.traverse(child => {
+            if (child.isMesh) {
+              child.castShadow    = false;
+              child.receiveShadow = false;
+              const mat = child.material;
+              if (mat) {
+                mat.roughness   = Math.min((mat.roughness ?? 0.8) + 0.15, 1);
+                mat.metalness   = Math.max((mat.metalness ?? 0.0) - 0.1, 0);
+                mat.envMapIntensity = 0.3;
+              }
+            }
+          });
+
+          // Start invisible, fade in
+          group.traverse(child => {
+            if (child.isMesh && child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach(m => {
+                m.transparent = true;
+                m.opacity     = 0;
+              });
+            }
+          });
+
+          centerModel(group);
+          scene.add(group);
+          currentGroup = group;
+          clearStatus();
+
+          // Fade in over ~2s
+          const start = performance.now();
+          const dur   = 2000;
+          function fadeIn() {
+            const t = Math.min((performance.now() - start) / dur, 1);
+            group.traverse(child => {
+              if (child.isMesh && child.material) {
+                const mats = Array.isArray(child.material) ? child.material : [child.material];
+                mats.forEach(m => { m.opacity = t; });
+              }
+            });
+            if (t < 1) requestAnimationFrame(fadeIn);
+          }
+          fadeIn();
+        },
+        undefined,
+        (err) => {
+          console.warn(`Model ${name}.glb not found or failed to load.`, err);
+          setStatus(`${name} — fragment absent`);
+          currentModel = null;
+        }
+      );
+    }
+
+    /* ---- Fade-out loop for removed model ---- */
+    function fadePrev(timestamp) {
+      if (!fadingOut) return;
+      fadingOut.traverse(child => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(m => {
+            m.transparent = true;
+            m.opacity     = Math.max((m.opacity ?? 1) - 0.012, 0);
+          });
+        }
+      });
+
+      let allGone = true;
+      fadingOut.traverse(child => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(m => { if (m.opacity > 0) allGone = false; });
+        }
+      });
+
+      if (allGone) {
+        scene.remove(fadingOut);
+        fadingOut = null;
+      }
+    }
+
+    /* ---- Render loop ---- */
+    function animate(ts) {
+      requestAnimationFrame(animate);
+      controls.update();
+      fadePrev(ts);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    /* ---- Resize ---- */
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* ---- Button events ---- */
+    document.querySelectorAll('.model-btn').forEach(btn => {
+      btn.addEventListener('click', () => loadModel(btn.dataset.model));
+    });
+
+    /* ---- Initial load — random model ---- */
+    const initial = MODELS[Math.floor(Math.random() * MODELS.length)];
+    container.classList.add('visible');
+    setTimeout(() => ui.classList.add('visible'), 1200);
+    loadModel(initial);
+  </script>
+</body>
+</html>
