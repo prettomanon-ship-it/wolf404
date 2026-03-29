@@ -51,7 +51,7 @@ scene.add(fillLight);
 // ── Load model ─────────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
 loader.load(
-  'model.glb',
+  'embryon404_cable_texture-v1.glb',
   (gltf) => {
     const model = gltf.scene;
 
