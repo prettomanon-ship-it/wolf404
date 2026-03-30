@@ -76,21 +76,26 @@ export class ARButton {
 
 		// Creates an <a rel="ar"> link styled to look like a button.
 		// Safari uses this anchor to trigger Apple Quick Look AR.
-		// The anchor must contain at least one <img> child (Apple requirement).
+		// Apple requires the <img> to be the FIRST child of the anchor element.
 		function createQuickLookButton( src ) {
 
 			const link = document.createElement( 'a' );
 			link.setAttribute( 'rel', 'ar' );
 			link.href = src;
 			link.style.cssText = quickLookStyle;
-			link.textContent = 'VIEW IN AR';
 
-			// Safari requires an <img> child to activate Quick Look.
+			// Safari requires an <img> as the first child to activate Quick Look.
 			// A 1×1 transparent GIF (base64) satisfies the requirement invisibly.
+			// It must be appended before any text content to be the first child.
 			const img = document.createElement( 'img' );
-			img.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;';
 			img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+			img.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;';
 			link.appendChild( img );
+
+			// Label text goes in a <span> after the <img>.
+			const label = document.createElement( 'span' );
+			label.textContent = 'VIEW IN AR';
+			link.appendChild( label );
 
 			return link;
 
