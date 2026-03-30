@@ -79,15 +79,16 @@ let modelReady = false;
 const TARGET_HEIGHT = 1.8;
 
 // ── Spatial composition ───────────────────────────────────────────────────────
-// modelGroup is anchored at (reticle.x, reticle.y + 0.6, reticle.z) on tap.
-// That means the group origin sits 0.6 m above the detected floor.
+// modelGroup is anchored 1.2 m in front of the camera on tap, and oriented
+// so its +Z faces toward the user.  Its origin is lifted 0.6 m above the
+// detected floor so the embryo floats at chest height.
 // Ground level in modelGroup local space is therefore y = -0.6.
 //
-// Layout (local coords):
-//   Embryo  (0,     0,    0   )  — centre, floating 0.6 m above floor
+// Layout (local coords, +Z faces user):
+//   Embryo  ( 0,    0,    0   )  — centre, floating 0.6 m above floor
 //   Wolf    (-1.3, -0.6, -0.5 )  — left, on ground, slightly behind embryo
 //   Flore   (-0.6, -0.6, -0.3 )  — ground connector between wolf and embryo
-//   Arch    ( 0.9, -0.6,  0.7 )  — right-front, on ground, diagonal threshold
+//   Arch    (-0.9, -0.6,  0.4 )  — left-front, on ground, threshold toward user
 
 // Sub-group for wolf — placed left of embryo, on ground.
 const wolfGroup = new THREE.Group();
@@ -103,11 +104,11 @@ floreGroup.position.set( - 0.6, - 0.6, - 0.3 );
 floreGroup.rotation.y = Math.PI; // face toward the viewer's entry point (+Z)
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — diagonal threshold to the right, closer to user.
+// Sub-group for arch — organic threshold on left-front, opens toward the user.
 const archGroup = new THREE.Group();
-archGroup.position.set( 0.9, - 0.6, 0.7 );
-// Diagonal rotation so the arch opens toward the embryo / wolf area.
-archGroup.rotation.y = - Math.PI * 0.2;
+archGroup.position.set( - 0.9, - 0.6, 0.4 );
+// Rotate so the arch opening faces toward the embryo / user side.
+archGroup.rotation.y = Math.PI * 0.15;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
@@ -183,7 +184,7 @@ loader.load(
 	( error ) => { console.error( 'Flore loading error:', error ); }
 );
 
-// ── Arch — organic threshold / grotto, diagonal to the right-front ───────────
+// ── Arch — organic threshold / grotto, left-front of the composition ─────────
 loader.load(
 	'arch.glb',
 	( gltf ) => {
@@ -201,15 +202,38 @@ loader.load(
 // In WebXR AR, a screen tap fires a "select" event on the first controller.
 const controller = renderer.xr.getController( 0 );
 
+// Latest camera world position, updated every frame so the select handler
+// can use it without re-querying the XR camera mid-event.
+const cameraWorldPos = new THREE.Vector3();
+
 controller.addEventListener( 'select', () => {
 
 	if ( placed || ! modelReady || ! reticle.visible ) return;
 
-	// Snap model group to the hit-test surface position, then lift it
-	// so the embryo is suspended at roughly chest / head height (~0.6 m
-	// above the detected floor) rather than resting on the ground.
-	modelGroup.position.setFromMatrixPosition( reticle.matrix );
-	modelGroup.position.y += 0.6;
+	// Use the hit-test surface for the floor Y, but place the scene
+	// 1.2 m in front of the camera so it is always at a close,
+	// readable distance regardless of where the user aimed.
+	const hitPoint = new THREE.Vector3().setFromMatrixPosition( reticle.matrix );
+
+	const xrCam = renderer.xr.getCamera();
+	const forward = new THREE.Vector3( 0, 0, - 1 ).applyQuaternion( xrCam.quaternion );
+	forward.y = 0;
+	// Guard against a near-zero vector when the camera points almost straight up/down.
+	const MIN_FORWARD_SQ = 0.0001;
+	if ( forward.lengthSq() > MIN_FORWARD_SQ ) forward.normalize();
+
+	const PLACE_DISTANCE = 1.2; // metres
+
+	modelGroup.position.set(
+		cameraWorldPos.x + forward.x * PLACE_DISTANCE,
+		hitPoint.y + 0.6,
+		cameraWorldPos.z + forward.z * PLACE_DISTANCE,
+	);
+
+	// Negate forward so the scene's +Z axis points back toward the user,
+	// making "left" in local space match the user's left.
+	modelGroup.rotation.y = Math.atan2( - forward.x, - forward.z );
+
 	modelGroup.visible = true;
 	placed = true;
 	reticle.visible = false;
@@ -267,6 +291,9 @@ renderer.setAnimationLoop( ( timestamp, frame ) => {
 
 		const referenceSpace = renderer.xr.getReferenceSpace();
 		const session = renderer.xr.getSession();
+
+		// Keep cameraWorldPos current so the select handler can use it.
+		renderer.xr.getCamera().getWorldPosition( cameraWorldPos );
 
 		// Request hit-test source once per session.
 		if ( ! hitTestSourceRequested ) {
