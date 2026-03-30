@@ -67,5 +67,5 @@ canvas {
   inset: 0;
   pointer-events: none;
   z-index: 9;
-  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.88) 100%);
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.5) 100%);
 }
