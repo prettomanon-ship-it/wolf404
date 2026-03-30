@@ -9,12 +9,12 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.LinearToneMapping;
 renderer.toneMappingExposure = 1.0;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+scene.background = new THREE.Color(0x333333);
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -22,29 +22,19 @@ const camera = new THREE.PerspectiveCamera(
   0.01,
   1000
 );
-camera.position.set(0, 0, 5);
 
 // ── Controls ───────────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.04;
-controls.rotateSpeed = 0.5;
-controls.zoomSpeed = 0.7;
-controls.minDistance = 0.5;
-controls.maxDistance = 20;
-controls.enablePan = false;
 
-// ── Simple debug lighting ──────────────────────────────────────────────────
+// ── Lighting ───────────────────────────────────────────────────────────────
 const ambient = new THREE.AmbientLight(0xffffff, 1.0);
 scene.add(ambient);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
-keyLight.position.set(5, 5, 5);
-scene.add(keyLight);
-
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
-fillLight.position.set(-5, -2, -5);
-scene.add(fillLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+dirLight.position.set(5, 5, 5);
+scene.add(dirLight);
 
 // ── Load model ─────────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
@@ -54,22 +44,24 @@ loader.load(
   (gltf) => {
     console.log('GLB loaded successfully', gltf);
     const model = gltf.scene;
-
-    // Center and normalize scale
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = maxDim > 0 ? 2 / maxDim : 1;
-
-    model.scale.setScalar(scale);
-    const scaledBox = new THREE.Box3().setFromObject(model);
-    const center = scaledBox.getCenter(new THREE.Vector3());
-    model.position.sub(center);
     scene.add(model);
-    console.log('GLB added to scene. Scale:', scale, 'Position:', model.position);
+    console.log('GLB added to scene');
 
-    controls.target.set(0, 0, 0);
-    camera.position.set(0, 0, 5);
+    // Compute bounding box and frame camera to show entire model
+    const FRAME_PADDING = 1.5; // extra multiplier so model isn't clipped at edges
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1; // guard against degenerate/empty models
+    const fov = camera.fov * (Math.PI / 180);
+    const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * FRAME_PADDING;
+
+    camera.position.set(center.x, center.y, center.z + cameraDistance);
+    camera.near = Math.max(cameraDistance / 100, 0.001);
+    camera.far = cameraDistance * 100;
+    camera.updateProjectionMatrix();
+
+    controls.target.copy(center);
     controls.update();
   },
   undefined,
