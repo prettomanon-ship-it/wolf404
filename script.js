@@ -71,6 +71,15 @@ let breathingBasePos   = null; // base position for glitch jitter
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
 const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
+// Golden ratio (exact) keeps the three breathing frequencies truly irrational
+// relative to one another so the compound waveform never visibly loops.
+const PHI                  = (1 + Math.sqrt(5)) / 2; // ≈ 1.6180339…
+const BREATH_F2            = BREATH_FREQUENCY * PHI;           // ≈ 21 – period ≈ 6 s
+const BREATH_F3            = BREATH_FREQUENCY / (PHI * PHI);   // ≈  5 – period ≈ 26 s
+// Weights for the three components – dominant + two smaller harmonics (sum = 1)
+const BREATH_W1            = 0.55;
+const BREATH_W2            = 0.28;
+const BREATH_W3            = 0.17;
 const BREATH_EXPOSURE_BASE = 4.6;
 const BREATH_EXPOSURE_AMP  = 0.06;  // ±0.06 exposure – subliminal light variation
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
@@ -227,10 +236,15 @@ function animate(timestamp) {
   camera.position.y += (Math.sin(time * SWAY_FREQUENCY_Y) * SWAY_AMPLITUDE_Y - camera.position.y) * SWAY_DAMPING;
   camera.position.x += (Math.sin(time * SWAY_FREQUENCY_X) * SWAY_AMPLITUDE_X - camera.position.x) * SWAY_DAMPING;
 
-  // Micro "breathing" – imperceptible scale pulse
+  // Organic "breathing" – three inharmonic sinusoids at golden-ratio frequency
+  // ratios so the compound waveform is quasi-aperiodic (no obvious loop).
   if (breathingModel) {
+    const breathSignal =
+      Math.sin(time * BREATH_FREQUENCY) * BREATH_W1 +
+      Math.sin(time * BREATH_F2)        * BREATH_W2 +
+      Math.sin(time * BREATH_F3)        * BREATH_W3;
     breathingModel.scale.setScalar(
-      breathingBaseScale * (1 + Math.sin(time * BREATH_FREQUENCY) * BREATH_SCALE_AMP)
+      breathingBaseScale * (1 + breathSignal * BREATH_SCALE_AMP)
     );
   }
 
