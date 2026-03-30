@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 
@@ -141,6 +142,10 @@ await MeshoptDecoder.ready;
 
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder( MeshoptDecoder );
+
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath( './libs/three/examples/jsm/libs/draco/gltf/' );
+loader.setDRACOLoader( dracoLoader );
 
 // ── Embryo ───────────────────────────────────────────────────────────────────
 loader.load(
