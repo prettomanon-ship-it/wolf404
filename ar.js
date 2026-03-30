@@ -3,10 +3,26 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // NOTE: WebXR requires a secure context (HTTPS or localhost).
 
+// ── iOS / Quick Look detection (synchronous) ─────────────────────────────────
+// iOS Safari supports <a rel="ar"> (Quick Look) but not WebXR immersive-ar.
+// When detected we bypass WebXR entirely and show an interactive 3D viewer
+// so users are never stuck on a black screen or an unsupported-AR message.
+const supportsQuickLook = ( () => {
+	try { return document.createElement( 'a' ).relList.supports( 'ar' ); }
+	catch ( e ) { return false; }
+} )();
+
 const instructionEl = document.getElementById( 'ar-instruction' );
+
+// On iOS, show the instruction banner immediately as a loading indicator.
+if ( supportsQuickLook ) {
+	instructionEl.textContent = 'Loading…';
+	instructionEl.style.display = 'block';
+}
 
 // ── Intro overlay ─────────────────────────────────────────────────────────────
 // Shown on top of the AR view once the session starts; fades out after 2 s.
@@ -18,31 +34,57 @@ renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-renderer.xr.enabled = true;
+renderer.toneMappingExposure = supportsQuickLook ? 3.5 : 1.0;
+// Only enable XR on non-iOS devices (WebXR is not supported on iOS Safari).
+renderer.xr.enabled = ! supportsQuickLook;
 document.body.appendChild( renderer.domElement );
 
 // ── AR entry button ─────────────────────────────────────────────────────────
-// hit-test and dom-overlay are optional so the session can start on devices
-// (e.g. iPhones) that don't support every feature.  Placement falls back to a
-// camera-forward tap when hit-test is unavailable.
+// On iOS: ARButton detects Quick Look support and creates a <a rel="ar"> link
+// that opens the embryo model in Apple Quick Look for 3D viewing.
+// On Android/Chrome: ARButton starts a WebXR immersive-ar session.
 document.body.appendChild(
 	ARButton.createButton( renderer, {
 		optionalFeatures: [ 'hit-test', 'dom-overlay' ],
 		domOverlay: { root: document.body },
-		// Fallback for iOS Safari, which does not support WebXR immersive-ar.
-		// Triggers Apple Quick Look AR with the main model when tapped.
+		// iOS Quick Look fallback — opens the embryo in Apple Quick Look.
+		// Quick Look will show the model in 3D view mode; full AR placement
+		// requires a USDZ version of the model (ios-src not yet available).
 		iosQuickLookSrc: 'embryon404_cable_texture-v1.glb',
 	} )
 );
 
 // ── Scene ───────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
+// iOS 3D fallback: dark background so the models are legible.
+if ( supportsQuickLook ) scene.background = new THREE.Color( 0x000000 );
 
 // ── Camera ──────────────────────────────────────────────────────────────────
 // WebXR replaces camera matrices at runtime; the PerspectiveCamera is still
 // required but its projection is overridden by the headset/device.
-const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 100 );
+const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 200 );
+
+// ── iOS 3D viewer (OrbitControls fallback) ───────────────────────────────────
+// iOS Safari does not support WebXR immersive-ar.  Rather than showing a
+// black screen while waiting for a session that never starts, we enable
+// OrbitControls so the user can explore the full scene in 3D.  The ARButton
+// (replaced by a Quick Look link on iOS) still lets them open the embryo in
+// Apple Quick Look for a single-model preview.
+let orbitControls = null;
+if ( supportsQuickLook ) {
+	orbitControls = new OrbitControls( camera, renderer.domElement );
+	orbitControls.enableDamping = true;
+	orbitControls.dampingFactor = 0.04;
+	orbitControls.rotateSpeed = 0.5;
+	orbitControls.zoomSpeed = 0.8;
+	orbitControls.minDistance = 1;
+	orbitControls.maxDistance = 30;
+	orbitControls.enablePan = true;
+	// Position camera to see the full composed scene once models load.
+	camera.position.set( 0, 1.5, 9 );
+	orbitControls.target.set( 0, 0.5, 0 );
+	orbitControls.update();
+}
 
 // ── Lighting ─────────────────────────────────────────────────────────────────
 // Neutral lights so the model looks natural against the real-world background.
@@ -73,10 +115,14 @@ scene.add( reticle );
 // Wrapping the model in a Group lets us set a clean base-position after the
 // bounding-box centering offsets are baked into the child model's transform.
 const modelGroup = new THREE.Group();
-modelGroup.visible = false;
+// On iOS the scene is shown immediately as an interactive 3D viewer;
+// on WebXR devices it stays hidden until the user taps to place.
+modelGroup.visible = supportsQuickLook;
 scene.add( modelGroup );
 
-let placed = false;
+// On iOS we pre-place the scene at the world origin so OrbitControls can
+// frame it right away.  On WebXR devices, placement happens on tap.
+let placed = supportsQuickLook;
 let modelReady = false;
 
 // Target real-world height for the creature (metres).  1.8 m makes the
@@ -165,8 +211,14 @@ loader.load(
 		embryoGroup.add( model );
 		modelReady = true;
 
-		// Update text so it's ready for when the AR session starts.
-		instructionEl.textContent = 'Tap to place the scene';
+		if ( supportsQuickLook ) {
+			// iOS: scene is already visible; show navigation hint.
+			instructionEl.textContent = 'Drag to explore · pinch to zoom';
+			instructionEl.style.display = 'block';
+		} else {
+			// WebXR: update text so it's ready for when the AR session starts.
+			instructionEl.textContent = 'Tap to place the scene';
+		}
 
 	},
 	undefined,
@@ -246,7 +298,7 @@ controller.addEventListener( 'select', () => {
 	const MIN_FORWARD_SQ = 0.0001;
 	if ( forward.lengthSq() > MIN_FORWARD_SQ ) forward.normalize();
 
-	const PLACE_DISTANCE = 2.0; // metres
+	const PLACE_DISTANCE = 3.5; // metres
 
 	// Use the hit-test surface height when available; otherwise estimate the
 	// floor as ~1.5 m below the camera (typical phone-in-hand height).
@@ -320,6 +372,11 @@ renderer.xr.addEventListener( 'sessionend', () => {
 
 // ── Animation / render loop ───────────────────────────────────────────────────
 renderer.setAnimationLoop( ( timestamp, frame ) => {
+
+	if ( orbitControls ) {
+		// iOS 3D viewer: update OrbitControls damping each frame.
+		orbitControls.update();
+	}
 
 	if ( frame ) {
 

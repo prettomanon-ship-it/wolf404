@@ -33,10 +33,31 @@ controls.dampingFactor = 0.04;
 controls.rotateSpeed = 0.5;
 controls.zoomSpeed = 0.7;
 controls.minDistance = 0.5;
-controls.maxDistance = 20;
+controls.maxDistance = 40;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.5;
-controls.enablePan = false;
+controls.enablePan = true;
+
+// ── User-interaction tracking ──────────────────────────────────────────────
+// When the user grabs the scene (touch / mouse), suspend the auto-sway and
+// auto-rotation so they can freely orbit, zoom and pan.  Both resume after
+// a short idle period once the user releases their input.
+let userInteracting = false;
+let swayResumeTimer = null;
+const SWAY_RESUME_DELAY = 3500; // ms idle before ambient animation restores
+
+controls.addEventListener('start', () => {
+  userInteracting = true;
+  controls.autoRotate = false;
+  clearTimeout(swayResumeTimer);
+});
+
+controls.addEventListener('end', () => {
+  swayResumeTimer = setTimeout(() => {
+    userInteracting = false;
+    controls.autoRotate = true;
+  }, SWAY_RESUME_DELAY);
+});
 
 // ── Lighting ───────────────────────────────────────────────────────────────
 // Ambient – neutral warm-grey to reduce blue cast
@@ -274,9 +295,12 @@ function animate(timestamp) {
   lastTimestamp = timestamp;
   time += 0.0008;
 
-  // Gentle camera sway
-  camera.position.y += (Math.sin(time * SWAY_FREQUENCY_Y) * SWAY_AMPLITUDE_Y - camera.position.y) * SWAY_DAMPING;
-  camera.position.x += (Math.sin(time * SWAY_FREQUENCY_X) * SWAY_AMPLITUDE_X - camera.position.x) * SWAY_DAMPING;
+  // Gentle camera sway — suspended while the user is actively controlling the
+  // camera so their input is never overridden.
+  if (!userInteracting) {
+    camera.position.y += (Math.sin(time * SWAY_FREQUENCY_Y) * SWAY_AMPLITUDE_Y - camera.position.y) * SWAY_DAMPING;
+    camera.position.x += (Math.sin(time * SWAY_FREQUENCY_X) * SWAY_AMPLITUDE_X - camera.position.x) * SWAY_DAMPING;
+  }
 
   // Organic "breathing" – three inharmonic sinusoids at golden-ratio frequency
   // ratios so the compound waveform is quasi-aperiodic (no obvious loop).
