@@ -87,9 +87,10 @@ export class ARButton {
 			// Safari requires an <img> as the first child to activate Quick Look.
 			// A 1×1 transparent GIF (base64) satisfies the requirement invisibly.
 			// It must be appended before any text content to be the first child.
+			// width/height must be ≥ 1 px — a zero-size image is not recognised.
 			const img = document.createElement( 'img' );
 			img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-			img.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;';
+			img.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
 			link.appendChild( img );
 
 			// Label text goes in a <span> after the <img>.
@@ -152,11 +153,23 @@ export class ARButton {
 				.catch( ( e ) => {
 
 					console.warn( 'isSessionSupported error:', e );
-					button.textContent = 'AR UNAVAILABLE';
-					button.style.border = '1px solid #555';
-					button.style.background = 'rgba(0,0,0,0.55)';
-					button.style.color = '#555';
-					button.disabled = true;
+
+					// isSessionSupported can throw on some iOS versions even when
+					// Quick Look AR is available.  Prefer Quick Look over an error state.
+					if ( supportsQuickLook && sessionInit.iosQuickLookSrc ) {
+
+						const link = createQuickLookButton( sessionInit.iosQuickLookSrc );
+						button.replaceWith( link );
+
+					} else {
+
+						button.textContent = 'AR UNAVAILABLE';
+						button.style.border = '1px solid #555';
+						button.style.background = 'rgba(0,0,0,0.55)';
+						button.style.color = '#555';
+						button.disabled = true;
+
+					}
 
 				} );
 
