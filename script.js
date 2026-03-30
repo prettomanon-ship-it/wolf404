@@ -71,27 +71,27 @@ scene.add(backRim);
 const compositionGroup = new THREE.Group();
 scene.add(compositionGroup);
 
-// Wolf — off-left, angled instinctively rather than aimed at the embryo.
+// Wolf — pushed far forward and left, rotation has no clean aim — instinct, not intention.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set(-2.9, 0, 0.8);
-wolfGroup.rotation.y = 1.2; // ~69° — faces loosely toward scene without precise aim
+wolfGroup.position.set(-2.3, 0, 1.9);
+wolfGroup.rotation.y = 0.93; // ~53° — angled across the scene, not targeting the embryo
 compositionGroup.add(wolfGroup);
 
-// Flore — ground anchor pulled toward wolf's side, slightly embedded below floor.
+// Flore — ground anchor on the right-forward side; breaks the wolf→embryo axis entirely.
 const floreGroup = new THREE.Group();
-floreGroup.position.set(-1.7, -0.05, 0.4);
-floreGroup.rotation.y = 3.7; // ~212° — turned away from viewer, subtle ground presence
+floreGroup.position.set(1.3, -0.1, 1.1);
+floreGroup.rotation.y = 4.9; // ~281° — turned sideways, low and quiet
 compositionGroup.add(floreGroup);
 
-// Arch — closer in and angled as a presence, not a distant backdrop.
+// Arch — pulled back behind the embryo plane so it rises from depth, not from the side.
 const archGroup = new THREE.Group();
-archGroup.position.set(4.4, 0, 1.7);
-archGroup.rotation.y = -0.7;
+archGroup.position.set(3.4, 0, -1.0);
+archGroup.rotation.y = -0.55;
 compositionGroup.add(archGroup);
 
-// Embryo — focal point, floats off the exact centre to avoid forced symmetry.
+// Embryo — focal point, slightly more off-centre and fractionally higher than the floor plane.
 const embryoGroup = new THREE.Group();
-embryoGroup.position.set(0.3, 0.55, -0.6);
+embryoGroup.position.set(0.4, 0.6, -0.3);
 compositionGroup.add(embryoGroup);
 
 // ── Helper: scale to target height, rest base on y = 0 (local space) ───────
@@ -344,10 +344,10 @@ loader.load(
 
     // Frame camera to encompass the full composition.
     // Approximate bounds (group positions + model extents):
-    //   x ≈ [-4.5, 6.0], y ≈ [0, 2.5], z ≈ [-1.5, 3.5].
+    //   x ≈ [-3.5, 5.5], y ≈ [0, 2.5], z ≈ [-2.2, 3.2].
     // A fixed position is used so all elements are readable at once on both
     // desktop (landscape) and mobile (portrait).
-    const SCENE_CENTER = new THREE.Vector3(0.5, 0.9, 0.4);
+    const SCENE_CENTER = new THREE.Vector3(0.8, 0.9, 0.5);
     camera.position.set(0.8, 1.3, 13);
     camera.near = 0.01;
     camera.far = 200;
