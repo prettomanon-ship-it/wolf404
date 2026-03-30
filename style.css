@@ -24,3 +24,18 @@ canvas {
   width: 100% !important;
   height: 100% !important;
 }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+#loading.hidden {
+  display: none;
+}
