@@ -391,12 +391,9 @@ loader.load(
 loader.load(
   'arch.glb',
   (gltf) => {
-    console.log('Arch GLB loaded successfully', gltf);
     const model = gltf.scene;
     fitAndCenter(model, 2.8);
-    model.scale.multiplyScalar(3);
     archGroup.add(model);
-    console.log('Arch added to scene');
   },
   undefined,
   (error) => { console.error('Arch loading error:', error); }
