@@ -84,33 +84,40 @@ const TARGET_HEIGHT = 1.8;
 // detected floor so the embryo floats at chest height.
 // Ground level in modelGroup local space is therefore y = -0.6.
 //
-// Layout (local coords, +Z faces user):
-//   Embryo  ( 0,    0,    0   )  — centre, floating 0.6 m above floor
-//   Wolf    (-2.2, -0.6, -0.5 )  — left, on ground, slightly behind embryo
-//   Flore   (-0.6, -0.6, -0.3 )  — ground connector between wolf and embryo
-//   Arch    (-0.9, -0.6,  0.4 )  — right-front from user's viewpoint (local -X = user's right
-//                                   because +Z faces user), threshold toward user
-// Note: the desktop 3D scene (script.js) mirrors this layout with arch at +X.
+// Coordinate system (local coords, model rotation makes +Z face user):
+//   +X = user's right,  -X = user's left
+//   +Z = toward user,   -Z = further away from user
+//
+// Layout (local coords):
+//   Embryo  ( 0.0,  0.0, -0.3 )  — centre, floating above floor, slightly back
+//   Wolf    (-3.5, -0.6, -0.4 )  — left, on ground, wide spacing from embryo
+//   Flore   ( 0.0, -0.6,  0.7 )  — front-center, connective ground element
+//   Arch    ( 3.5, -0.6,  0.2 )  — far right, detached from the central cluster
 
-// Sub-group for wolf — placed left of embryo, on ground.
+// Sub-group for embryo — central, slightly back for depth.
+const embryoGroup = new THREE.Group();
+embryoGroup.position.set( 0, 0, - 0.3 );
+modelGroup.add( embryoGroup );
+
+// Sub-group for wolf — placed left of embryo, on ground, wide spacing.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.2, - 0.6, - 0.5 );
-// Rotate to face toward the embryo at origin.
-// dx = 0 - (-2.2) = 2.2,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, dz).
-wolfGroup.rotation.y = Math.atan2( 2.2, 0.5 );
+wolfGroup.position.set( - 3.5, - 0.6, - 0.4 );
+// Rotate to face toward the embryo.
+// dx = 0 - (-3.5) = 3.5,  dz = -0.3 - (-0.4) = 0.1  →  atan2(dx, dz).
+wolfGroup.rotation.y = Math.atan2( 3.5, 0.1 );
 modelGroup.add( wolfGroup );
 
-// Sub-group for flore — connective ground layer between wolf and embryo.
+// Sub-group for flore — front-center connective ground element.
 const floreGroup = new THREE.Group();
-floreGroup.position.set( - 0.6, - 0.6, - 0.3 );
-floreGroup.rotation.y = Math.PI; // face toward the viewer's entry point (+Z)
+floreGroup.position.set( 0.0, - 0.6, 0.7 );
+floreGroup.rotation.y = Math.PI; // face toward the embryo behind it
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — organic threshold on left-front, opens toward the user.
+// Sub-group for arch — far right, opens toward the rest of the composition.
 const archGroup = new THREE.Group();
-archGroup.position.set( - 0.9, - 0.6, 0.4 );
-// Rotate so the arch opening faces toward the embryo / user side.
-archGroup.rotation.y = Math.PI * 0.15;
+archGroup.position.set( 3.5, - 0.6, 0.2 );
+// Mirror the 3D scene rotation so the arch opens toward the left / centre.
+archGroup.rotation.y = - Math.PI * 0.2;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
@@ -141,7 +148,7 @@ loader.load(
 
 		const model = gltf.scene;
 		fitAndCenter( model, TARGET_HEIGHT );
-		modelGroup.add( model );
+		embryoGroup.add( model );
 		modelReady = true;
 
 		// Update text so it's ready for when the AR session starts.
@@ -186,7 +193,7 @@ loader.load(
 	( error ) => { console.error( 'Flore loading error:', error ); }
 );
 
-// ── Arch — organic threshold / grotto, left-front of the composition ─────────
+// ── Arch — organic threshold / grotto, far right of the composition ──────────
 loader.load(
 	'arch.glb',
 	( gltf ) => {
