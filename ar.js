@@ -112,11 +112,13 @@ floreGroup.position.set( - 0.6, - 0.6, 1.1 );
 floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — closer in, angled as a presence rather than backdrop.
+// Sub-group for arch — backdrop threshold to the right, kept within the
+// device FOV by limiting the lateral offset.  At a 1.2 m placement distance
+// x = 1.5 puts the arch at ~34° off-centre — safely inside most phone cameras.
 const archGroup = new THREE.Group();
-archGroup.position.set( 3.0, - 0.6, - 0.5 );
+archGroup.position.set( 1.5, - 0.6, - 1.0 );
 // Angle opens toward the left / centre without mirroring the composition exactly.
-archGroup.rotation.y = - 0.7;
+archGroup.rotation.y = - 0.5;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
