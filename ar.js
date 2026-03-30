@@ -23,11 +23,12 @@ renderer.xr.enabled = true;
 document.body.appendChild( renderer.domElement );
 
 // ── AR entry button ─────────────────────────────────────────────────────────
-// dom-overlay keeps the instruction banner and back-link visible in AR mode.
+// hit-test and dom-overlay are optional so the session can start on devices
+// (e.g. iPhones) that don't support every feature.  Placement falls back to a
+// camera-forward tap when hit-test is unavailable.
 document.body.appendChild(
 	ARButton.createButton( renderer, {
-		requiredFeatures: [ 'hit-test' ],
-		optionalFeatures: [ 'dom-overlay' ],
+		optionalFeatures: [ 'hit-test', 'dom-overlay' ],
 		domOverlay: { root: document.body },
 	} )
 );
@@ -162,7 +163,7 @@ loader.load(
 		modelReady = true;
 
 		// Update text so it's ready for when the AR session starts.
-		instructionEl.textContent = 'Point camera at a flat surface, then tap to place';
+		instructionEl.textContent = 'Tap to place the scene';
 
 	},
 	undefined,
@@ -228,12 +229,12 @@ const cameraWorldPos = new THREE.Vector3();
 
 controller.addEventListener( 'select', () => {
 
-	if ( placed || ! modelReady || ! reticle.visible ) return;
+	if ( placed || ! modelReady ) return;
 
-	// Use the hit-test surface for the floor Y, but place the scene
-	// 1.2 m in front of the camera so it is always at a close,
-	// readable distance regardless of where the user aimed.
-	const hitPoint = new THREE.Vector3().setFromMatrixPosition( reticle.matrix );
+	// When hit-test is active, only place on a detected surface.
+	// When hit-test is not available (e.g. older iOS Safari), allow tap-to-place
+	// anywhere and estimate the floor from the camera's world height.
+	if ( hitTestEnabled && ! reticle.visible ) return;
 
 	const xrCam = renderer.xr.getCamera();
 	const forward = new THREE.Vector3( 0, 0, - 1 ).applyQuaternion( xrCam.quaternion );
@@ -244,9 +245,15 @@ controller.addEventListener( 'select', () => {
 
 	const PLACE_DISTANCE = 2.0; // metres
 
+	// Use the hit-test surface height when available; otherwise estimate the
+	// floor as ~1.5 m below the camera (typical phone-in-hand height).
+	const floorY = reticle.visible
+		? new THREE.Vector3().setFromMatrixPosition( reticle.matrix ).y
+		: cameraWorldPos.y - 1.5;
+
 	modelGroup.position.set(
 		cameraWorldPos.x + forward.x * PLACE_DISTANCE,
-		hitPoint.y + 0.6,
+		floorY + 0.6,
 		cameraWorldPos.z + forward.z * PLACE_DISTANCE,
 	);
 
@@ -267,6 +274,9 @@ scene.add( controller );
 // ── Hit-test state ───────────────────────────────────────────────────────────
 let hitTestSource = null;
 let hitTestSourceRequested = false;
+// Set to true once the hit-test source is successfully acquired for the session.
+// Stays false on devices where hit-test is unsupported (e.g. some iOS versions).
+let hitTestEnabled = false;
 
 renderer.xr.addEventListener( 'sessionstart', () => {
 
@@ -275,9 +285,10 @@ renderer.xr.addEventListener( 'sessionstart', () => {
 	reticle.visible = false;
 	hitTestSource = null;
 	hitTestSourceRequested = false;
+	hitTestEnabled = false;
 
 	instructionEl.textContent = modelReady
-		? 'Point camera at a flat surface, then tap to place'
+		? 'Tap to place the scene'
 		: 'Loading…';
 	instructionEl.style.display = 'block';
 
@@ -322,7 +333,20 @@ renderer.setAnimationLoop( ( timestamp, frame ) => {
 				.then( ( viewerSpace ) => {
 
 					session.requestHitTestSource( { space: viewerSpace } )
-						.then( ( source ) => { hitTestSource = source; } )
+						.then( ( source ) => {
+
+							hitTestSource = source;
+							hitTestEnabled = true;
+
+							// Upgrade the instruction to surface-targeting guidance now that
+							// hit-test is confirmed to be working.
+							if ( ! placed ) {
+
+								instructionEl.textContent = 'Point camera at a flat surface, then tap to place';
+
+							}
+
+						} )
 						.catch( console.error );
 
 				} )
