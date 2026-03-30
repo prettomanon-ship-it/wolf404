@@ -8,19 +8,8 @@ import { ARButton } from 'three/addons/webxr/ARButton.js';
 const instructionEl = document.getElementById( 'ar-instruction' );
 
 // ── Intro overlay ─────────────────────────────────────────────────────────────
-// Display the overlay for ~2.5 s then fade it out smoothly.
+// Shown on top of the AR view once the session starts; fades out after 2 s.
 const introOverlay = document.getElementById( 'intro-overlay' );
-if ( introOverlay ) {
-
-	setTimeout( () => {
-
-		introOverlay.style.transition = 'opacity 0.9s ease';
-		introOverlay.style.opacity = '0';
-		introOverlay.addEventListener( 'transitionend', () => introOverlay.remove(), { once: true } );
-
-	}, 2500 );
-
-}
 
 // ── Renderer ────────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
@@ -169,6 +158,21 @@ renderer.xr.addEventListener( 'sessionstart', () => {
 		? 'Point camera at a flat surface, then tap to place'
 		: 'Loading…';
 	instructionEl.style.display = 'block';
+
+	// Show the intro text on top of the AR view, then fade it out after 2 s.
+	if ( introOverlay ) {
+
+		introOverlay.style.transition = 'none';
+		introOverlay.style.opacity = '1';
+		setTimeout( () => {
+
+			introOverlay.style.transition = 'opacity 0.9s ease';
+			introOverlay.style.opacity = '0';
+			introOverlay.addEventListener( 'transitionend', () => introOverlay.remove(), { once: true } );
+
+		}, 2000 );
+
+	}
 
 } );
 
