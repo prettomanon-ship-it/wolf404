@@ -12,7 +12,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 4.2;
+renderer.toneMappingExposure = 4.6;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -34,12 +34,12 @@ controls.zoomSpeed = 0.7;
 controls.minDistance = 0.5;
 controls.maxDistance = 20;
 controls.autoRotate = true;
-controls.autoRotateSpeed = 0.06;
+controls.autoRotateSpeed = 0.5;
 controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
 // Ambient – neutral warm-grey to reduce blue cast
-const ambient = new THREE.AmbientLight(0x1a1614, 2.5);
+const ambient = new THREE.AmbientLight(0x1a1614, 3.2);
 scene.add(ambient);
 
 // Rim stays subtly blue for holographic silhouette, but far less saturated
@@ -57,8 +57,8 @@ const keyLight = new THREE.DirectionalLight(0x998880, 3.5);
 keyLight.position.set(0, 3, 5);
 scene.add(keyLight);
 
-// Back rim kept dark but desaturated
-const backRim = new THREE.DirectionalLight(0x0e0e18, 1.0);
+// Back rim – desaturated cool blue to trace silhouette from behind
+const backRim = new THREE.DirectionalLight(0x2233aa, 2.8);
 backRim.position.set(2, -2, -5);
 scene.add(backRim);
 
@@ -71,7 +71,7 @@ let breathingBasePos   = null; // base position for glitch jitter
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
 const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
-const BREATH_EXPOSURE_BASE = 4.2;
+const BREATH_EXPOSURE_BASE = 4.6;
 const BREATH_EXPOSURE_AMP  = 0.06;  // ±0.06 exposure – subliminal light variation
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
 const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
