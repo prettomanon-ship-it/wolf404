@@ -12,7 +12,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 2.5;
+renderer.toneMappingExposure = 3.2;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -39,21 +39,21 @@ controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
 // Ambient toned down so the original texture is no longer drowned in blue
-const ambient = new THREE.AmbientLight(0x111828, 1.2);
+const ambient = new THREE.AmbientLight(0x111828, 2.0);
 scene.add(ambient);
 
 // Rim stays blue for the holographic silhouette, just less overpowering
-const rimLight = new THREE.DirectionalLight(0x3366ff, 2.5);
+const rimLight = new THREE.DirectionalLight(0x3366ff, 3.2);
 rimLight.position.set(-3, 2, -4);
 scene.add(rimLight);
 
 // Fill shifted to neutral grey-blue so texture detail is visible
-const fillLight = new THREE.DirectionalLight(0x556677, 2.0);
+const fillLight = new THREE.DirectionalLight(0x556677, 2.8);
 fillLight.position.set(4, -1, 3);
 scene.add(fillLight);
 
 // Key light made more neutral to reveal surface texture
-const keyLight = new THREE.DirectionalLight(0x7799bb, 2.2);
+const keyLight = new THREE.DirectionalLight(0x7799bb, 3.0);
 keyLight.position.set(0, 3, 5);
 scene.add(keyLight);
 
@@ -71,15 +71,15 @@ let breathingBasePos   = null; // base position for glitch jitter
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
 const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
-const BREATH_EXPOSURE_BASE = 2.5;
+const BREATH_EXPOSURE_BASE = 3.2;
 const BREATH_EXPOSURE_AMP  = 0.06;  // ±0.06 exposure – subliminal light variation
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
 const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
 
 // ── Glitch / hologram anomaly ──────────────────────────────────────────────
 // Simulates a degraded hologram that crackles, flickers, and jolts.
-const GLITCH_INTERVAL_MIN      = 1.5;   // min quiet seconds between bursts
-const GLITCH_INTERVAL_MAX      = 5.0;   // max quiet seconds between bursts
+const GLITCH_INTERVAL_MIN      = 6.0;   // min quiet seconds between bursts
+const GLITCH_INTERVAL_MAX      = 18.0;  // max quiet seconds between bursts
 const GLITCH_BURST_MIN         = 0.10;  // min burst duration  (s)
 const GLITCH_BURST_MAX         = 0.40;  // max burst duration  (s)
 const GLITCH_INVISIBLE_CHANCE  = 0.65;  // probability of near-invisible frame
@@ -100,7 +100,7 @@ const GLITCH_TRANSLATE_X_AMP   = 14;    // max CSS translateX offset (px) during
 const DEFAULT_FRAME_TIME       = 0.016; // assumed dt (s) for the very first frame
 
 let glitchClock     = 0;           // accumulated real-time seconds
-let glitchNextBurst = 3.0;         // first glitch fires ~3 s after load
+let glitchNextBurst = 8.0;         // first glitch fires ~8 s after load
 let glitchBurstEnd  = 0;
 let glitchBurstOn   = false;
 let glitchJitterX   = 0;
