@@ -12,7 +12,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 2.5;
+renderer.toneMappingExposure = 3.2;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -38,20 +38,25 @@ controls.autoRotateSpeed = 0.06;
 controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+const ambient = new THREE.AmbientLight(0xffffff, 2.8);
 scene.add(ambient);
 
-const rimLight = new THREE.DirectionalLight(0x88aacc, 5.0);
+const rimLight = new THREE.DirectionalLight(0x88aacc, 9.0);
 rimLight.position.set(-3, 2, -4);
 scene.add(rimLight);
 
-const fillLight = new THREE.DirectionalLight(0x445566, 2.5);
+const fillLight = new THREE.DirectionalLight(0x445566, 4.5);
 fillLight.position.set(4, -1, 3);
 scene.add(fillLight);
 
-const keyLight = new THREE.DirectionalLight(0xaabbdd, 3.5);
+const keyLight = new THREE.DirectionalLight(0xaabbdd, 6.5);
 keyLight.position.set(0, 3, 5);
 scene.add(keyLight);
+
+// Extra back rim to silhouette the creature from all distances
+const backRim = new THREE.DirectionalLight(0x6677aa, 5.0);
+backRim.position.set(2, -2, -5);
+scene.add(backRim);
 
 // ── Breathing / presence state ─────────────────────────────────────────────
 // Holds the live model once loaded, for scale animation.
@@ -61,7 +66,7 @@ let breathingBaseScale = 1;
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
 const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
-const BREATH_EXPOSURE_BASE = 2.5;
+const BREATH_EXPOSURE_BASE = 3.2;
 const BREATH_EXPOSURE_AMP  = 0.04;  // ±0.04 exposure – subliminal light variation
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
 const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
