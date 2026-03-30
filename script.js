@@ -72,8 +72,8 @@ scene.add(compositionGroup);
 
 // Wolf — left of embryo, on ground, facing toward embryo / viewer.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set(-2.2, 0, -0.5);
-wolfGroup.rotation.y = Math.atan2(2.2, 0.5); // face toward embryo
+wolfGroup.position.set(-3.5, 0, -0.5);
+wolfGroup.rotation.y = Math.atan2(3.5, 0.5); // face toward embryo
 compositionGroup.add(wolfGroup);
 
 // Flore — connective ground layer between wolf and embryo.
@@ -84,7 +84,7 @@ compositionGroup.add(floreGroup);
 
 // Arch — organic threshold, angled to open toward wolf and embryo.
 const archGroup = new THREE.Group();
-archGroup.position.set(1.8, 0, 1.2);
+archGroup.position.set(5.5, 0, 4.0);
 archGroup.rotation.y = -Math.PI * 0.2;
 compositionGroup.add(archGroup);
 
@@ -343,11 +343,11 @@ loader.load(
 
     // Frame camera to encompass the full composition.
     // Approximate bounds (group positions + model extents):
-    //   x ≈ [-3.5, 3.2], y ≈ [0, 2.8], z ≈ [-2.0, 2.0].
+    //   x ≈ [-5.0, 7.0], y ≈ [0, 2.8], z ≈ [-2.0, 5.0].
     // A fixed position is used so all elements are readable at once on both
     // desktop (landscape) and mobile (portrait).
-    const SCENE_CENTER = new THREE.Vector3(-0.2, 1.0, 0);
-    camera.position.set(0, 1.4, 10);
+    const SCENE_CENTER = new THREE.Vector3(0.8, 1.0, 0.5);
+    camera.position.set(1.0, 1.4, 13);
     camera.near = 0.01;
     camera.far = 200;
     camera.updateProjectionMatrix();
