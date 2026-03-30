@@ -86,16 +86,18 @@ const TARGET_HEIGHT = 1.8;
 //
 // Layout (local coords, +Z faces user):
 //   Embryo  ( 0,    0,    0   )  — centre, floating 0.6 m above floor
-//   Wolf    (-1.3, -0.6, -0.5 )  — left, on ground, slightly behind embryo
+//   Wolf    (-2.2, -0.6, -0.5 )  — left, on ground, slightly behind embryo
 //   Flore   (-0.6, -0.6, -0.3 )  — ground connector between wolf and embryo
-//   Arch    (-0.9, -0.6,  0.4 )  — left-front, on ground, threshold toward user
+//   Arch    (-0.9, -0.6,  0.4 )  — right-front from user's viewpoint (local -X = user's right
+//                                   because +Z faces user), threshold toward user
+// Note: the desktop 3D scene (script.js) mirrors this layout with arch at +X.
 
 // Sub-group for wolf — placed left of embryo, on ground.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 1.3, - 0.6, - 0.5 );
+wolfGroup.position.set( - 2.2, - 0.6, - 0.5 );
 // Rotate to face toward the embryo at origin.
-// dx = 0 - (-1.3) = 1.3,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, dz).
-wolfGroup.rotation.y = Math.atan2( 1.3, 0.5 );
+// dx = 0 - (-2.2) = 2.2,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, dz).
+wolfGroup.rotation.y = Math.atan2( 2.2, 0.5 );
 modelGroup.add( wolfGroup );
 
 // Sub-group for flore — connective ground layer between wolf and embryo.
