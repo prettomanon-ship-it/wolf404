@@ -54,9 +54,18 @@ canvas {
   background: repeating-linear-gradient(
     to bottom,
     transparent 0px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.07) 3px,
-    rgba(0, 0, 0, 0.07) 4px
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 3px
   );
-  opacity: 0.6;
+  opacity: 0.85;
+}
+
+/* ── Dark vignette for deeper shadow framing ────────────────────────────── */
+#vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.88) 100%);
 }
