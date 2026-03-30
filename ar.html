@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wolf404 — AR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    canvas { display: block; }
+
+    /* Instruction banner shown while AR session is active */
+    #ar-instruction {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      text-align: center;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 8px 16px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    /* Back-to-3D link */
+    #back-link {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: #aaa;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      text-decoration: none;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 6px 12px;
+      border: 1px solid #333;
+      border-radius: 4px;
+    }
+
+    #back-link:hover { color: #fff; border-color: #666; }
+  </style>
+</head>
+<body>
+
+  <a id="back-link" href="index.html">← 3D</a>
+  <div id="ar-instruction">Chargement…</div>
+
+  <!-- Three.js core (self-hosted) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./libs/three/build/three.module.min.js",
+        "three/addons/": "./libs/three/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="ar.js"></script>
+
+</body>
+</html>
