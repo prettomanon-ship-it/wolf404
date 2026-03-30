@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -324,7 +325,11 @@ function fadeIn() {
 // ── Wait for MeshoptDecoder WASM, then load model ──────────────────────────
 await MeshoptDecoder.ready;
 
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('./libs/three/examples/jsm/libs/draco/gltf/');
+
 const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);
 loader.setMeshoptDecoder(MeshoptDecoder);
 console.log('starting GLB load');
 loader.load(
