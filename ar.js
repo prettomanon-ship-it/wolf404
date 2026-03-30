@@ -78,30 +78,65 @@ let modelReady = false;
 // embryo feel present in real space — roughly human-sized and striking.
 const TARGET_HEIGHT = 1.8;
 
+// ── Spatial composition ───────────────────────────────────────────────────────
+// modelGroup is anchored at (reticle.x, reticle.y + 0.6, reticle.z) on tap.
+// That means the group origin sits 0.6 m above the detected floor.
+// Ground level in modelGroup local space is therefore y = -0.6.
+//
+// Layout (local coords):
+//   Embryo  (0,     0,    0   )  — centre, floating 0.6 m above floor
+//   Wolf    (-1.3, -0.6, -0.5 )  — left, on ground, slightly behind embryo
+//   Flore   (-0.6, -0.6, -0.3 )  — ground connector between wolf and embryo
+//   Arch    ( 0.9, -0.6,  0.7 )  — right-front, on ground, diagonal threshold
+
+// Sub-group for wolf — placed left of embryo, on ground.
+const wolfGroup = new THREE.Group();
+wolfGroup.position.set( - 1.3, - 0.6, - 0.5 );
+// Rotate to face toward the embryo at origin.
+// dx = 0 - (-1.3) = 1.3,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, -dz).
+wolfGroup.rotation.y = Math.atan2( 1.3, - 0.5 );
+modelGroup.add( wolfGroup );
+
+// Sub-group for flore — connective ground layer between wolf and embryo.
+const floreGroup = new THREE.Group();
+floreGroup.position.set( - 0.6, - 0.6, - 0.3 );
+modelGroup.add( floreGroup );
+
+// Sub-group for arch — diagonal threshold to the right, closer to user.
+const archGroup = new THREE.Group();
+archGroup.position.set( 0.9, - 0.6, 0.7 );
+// Diagonal rotation so the arch opens toward the embryo / wolf area.
+archGroup.rotation.y = - Math.PI * 0.4;
+modelGroup.add( archGroup );
+
+// ── Helper: scale to target height, then center and rest base on y = 0 ───────
+function fitAndCenter( model, targetHeight ) {
+
+	const box = new THREE.Box3().setFromObject( model );
+	const size = box.getSize( new THREE.Vector3() );
+	// Guard against degenerate geometry (|| 1 prevents division by zero).
+	model.scale.setScalar( targetHeight / ( Math.max( size.x, size.y, size.z ) || 1 ) );
+
+	// Re-compute after scaling so centering uses the final dimensions.
+	box.setFromObject( model );
+	const center = box.getCenter( new THREE.Vector3() );
+	model.position.set( - center.x, - box.min.y, - center.z );
+
+}
+
 // ── Load GLB ─────────────────────────────────────────────────────────────────
 await MeshoptDecoder.ready;
 
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder( MeshoptDecoder );
 
+// ── Embryo ───────────────────────────────────────────────────────────────────
 loader.load(
 	'embryon404_cable_texture-v1.glb',
 	( gltf ) => {
 
 		const model = gltf.scene;
-
-		// Scale so the tallest dimension equals TARGET_HEIGHT metres.
-		const box = new THREE.Box3().setFromObject( model );
-		const size = box.getSize( new THREE.Vector3() );
-		const maxDim = Math.max( size.x, size.y, size.z ) || 1;
-		model.scale.setScalar( TARGET_HEIGHT / maxDim );
-
-		// Re-compute the box after scaling, then center horizontally and
-		// push the model upward so its base sits exactly at y = 0 (ground plane).
-		box.setFromObject( model );
-		const center = box.getCenter( new THREE.Vector3() );
-		model.position.set( - center.x, - box.min.y, - center.z );
-
+		fitAndCenter( model, TARGET_HEIGHT );
 		modelGroup.add( model );
 		modelReady = true;
 
@@ -117,6 +152,48 @@ loader.load(
 		instructionEl.style.display = 'block';
 
 	}
+);
+
+// ── Wolf — larger than embryo, lying on the ground to the left ───────────────
+loader.load(
+	'wolf.glb',
+	( gltf ) => {
+
+		const model = gltf.scene;
+		fitAndCenter( model, 2.5 );
+		wolfGroup.add( model );
+
+	},
+	undefined,
+	( error ) => { console.error( 'Wolf loading error:', error ); }
+);
+
+// ── Flore — small ground-layer element between wolf and embryo ───────────────
+loader.load(
+	'flore.glb',
+	( gltf ) => {
+
+		const model = gltf.scene;
+		fitAndCenter( model, 0.6 );
+		floreGroup.add( model );
+
+	},
+	undefined,
+	( error ) => { console.error( 'Flore loading error:', error ); }
+);
+
+// ── Arch — organic threshold / grotto, diagonal to the right-front ───────────
+loader.load(
+	'arch.glb',
+	( gltf ) => {
+
+		const model = gltf.scene;
+		fitAndCenter( model, 2.8 );
+		archGroup.add( model );
+
+	},
+	undefined,
+	( error ) => { console.error( 'Arch loading error:', error ); }
 );
 
 // ── Controller — tap to place ────────────────────────────────────────────────
