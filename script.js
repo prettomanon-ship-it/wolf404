@@ -62,6 +62,46 @@ const backRim = new THREE.DirectionalLight(0x2233aa, 2.8);
 backRim.position.set(2, -2, -5);
 scene.add(backRim);
 
+// ── Spatial composition ────────────────────────────────────────────────────
+// A single group holds all scene elements so the camera frames them together.
+// Floor is implied at y = 0; the embryo is elevated to float above the others.
+// Layout mirrors the AR scene so the two experiences look coherent.
+const compositionGroup = new THREE.Group();
+scene.add(compositionGroup);
+
+// Wolf — left of embryo, on ground, facing toward embryo / viewer.
+const wolfGroup = new THREE.Group();
+wolfGroup.position.set(-1.3, 0, -0.5);
+wolfGroup.rotation.y = Math.atan2(1.3, 0.5); // face toward embryo
+compositionGroup.add(wolfGroup);
+
+// Flore — connective ground layer between wolf and embryo.
+const floreGroup = new THREE.Group();
+floreGroup.position.set(-0.6, 0, -0.2);
+floreGroup.rotation.y = Math.PI; // face toward viewer
+compositionGroup.add(floreGroup);
+
+// Arch — organic threshold, angled to open toward wolf and embryo.
+const archGroup = new THREE.Group();
+archGroup.position.set(1.0, 0, 0.3);
+archGroup.rotation.y = -Math.PI * 0.2;
+compositionGroup.add(archGroup);
+
+// Embryo — elevated so it floats above the ground-level models.
+const embryoGroup = new THREE.Group();
+embryoGroup.position.set(0, 0.6, 0);
+compositionGroup.add(embryoGroup);
+
+// ── Helper: scale to target height, rest base on y = 0 (local space) ───────
+function fitAndCenter(model, targetHeight) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  model.scale.setScalar(targetHeight / (Math.max(size.x, size.y, size.z) || 1));
+  box.setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
+  model.position.set(-center.x, -box.min.y, -center.z);
+}
+
 // ── Breathing / presence state ─────────────────────────────────────────────
 // Holds the live model once loaded, for scale animation.
 let breathingModel     = null;
@@ -292,24 +332,21 @@ loader.load(
   (gltf) => {
     console.log('GLB loaded successfully', gltf);
     const model = gltf.scene;
-    scene.add(model);
+    fitAndCenter(model, 1.8);
+    embryoGroup.add(model);
     console.log('GLB added to scene');
 
-    // Compute bounding box and frame camera to show entire model
-    const FRAME_PADDING = 1.5; // extra multiplier so model isn't clipped at edges
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z) || 1; // guard against degenerate/empty models
-    const fov = camera.fov * (Math.PI / 180);
-    const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * FRAME_PADDING;
-
-    camera.position.set(center.x, center.y, center.z + cameraDistance);
-    camera.near = Math.max(cameraDistance / 100, 0.001);
-    camera.far = cameraDistance * 100;
+    // Frame camera to encompass the full composition.
+    // Approximate bounds: x ≈ [-2.6, 2.4], y ≈ [0, 2.8], z ≈ [-1.0, 1.0].
+    // A fixed position is used so all elements are readable at once on both
+    // desktop (landscape) and mobile (portrait).
+    const SCENE_CENTER = new THREE.Vector3(-0.2, 1.0, 0);
+    camera.position.set(0, 1.4, 9);
+    camera.near = 0.01;
+    camera.far = 200;
     camera.updateProjectionMatrix();
 
-    controls.target.copy(center);
+    controls.target.copy(SCENE_CENTER);
     controls.update();
 
     breathingModel     = model;
@@ -324,4 +361,40 @@ loader.load(
     console.error('GLB loading error:', error);
     loadingEl.textContent = 'Erreur de chargement';
   }
+);
+
+// ── Wolf — protective body on the left ────────────────────────────────────
+loader.load(
+  'wolf.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    fitAndCenter(model, 2.5);
+    wolfGroup.add(model);
+  },
+  undefined,
+  (error) => { console.error('Wolf loading error:', error); }
+);
+
+// ── Flore — living ground layer between wolf and embryo ───────────────────
+loader.load(
+  'flore.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    fitAndCenter(model, 0.6);
+    floreGroup.add(model);
+  },
+  undefined,
+  (error) => { console.error('Flore loading error:', error); }
+);
+
+// ── Arch — threshold on the right ─────────────────────────────────────────
+loader.load(
+  'arch.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    fitAndCenter(model, 2.8);
+    archGroup.add(model);
+  },
+  undefined,
+  (error) => { console.error('Arch loading error:', error); }
 );
