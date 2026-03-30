@@ -70,9 +70,9 @@ scene.add( modelGroup );
 let placed = false;
 let modelReady = false;
 
-// Target real-world height for the creature (metres).  40 cm is a good
-// "desktop-sized" presence that looks neither tiny nor overwhelming.
-const TARGET_HEIGHT = 0.4;
+// Target real-world height for the creature (metres).  1.8 m makes the
+// embryo feel present in real space — roughly human-sized and striking.
+const TARGET_HEIGHT = 1.8;
 
 // ── Load GLB ─────────────────────────────────────────────────────────────────
 await MeshoptDecoder.ready;
@@ -123,8 +123,11 @@ controller.addEventListener( 'select', () => {
 
 	if ( placed || ! modelReady || ! reticle.visible ) return;
 
-	// Snap model group to the hit-test surface position.
+	// Snap model group to the hit-test surface position, then lift it
+	// so the embryo is suspended at roughly chest / head height (~0.6 m
+	// above the detected floor) rather than resting on the ground.
 	modelGroup.position.setFromMatrixPosition( reticle.matrix );
+	modelGroup.position.y += 0.6;
 	modelGroup.visible = true;
 	placed = true;
 	reticle.visible = false;
