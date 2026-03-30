@@ -31,7 +31,7 @@ export class ARButton {
 		}
 
 		// Style shared between all states
-		button.style.cssText = [
+		const sharedStyle = [
 			'position:fixed',
 			'bottom:20px',
 			'left:50%',
@@ -44,6 +44,57 @@ export class ARButton {
 			'z-index:999',
 			'letter-spacing:0.08em',
 		].join( ';' );
+
+		button.style.cssText = sharedStyle;
+
+		// Detect Quick Look AR support directly (feature detection rather than
+		// user-agent sniffing).  Safari on iOS reports true; other browsers false.
+		const supportsQuickLook = ( () => {
+
+			try {
+
+				return document.createElement( 'a' ).relList.supports( 'ar' );
+
+			} catch ( e ) {
+
+				return false;
+
+			}
+
+		} )();
+
+		// Style for the Quick Look link, extending the shared button style.
+		const quickLookStyle = [
+			...sharedStyle.split( ';' ),
+			'text-decoration:none',
+			'display:inline-block',
+			'text-align:center',
+			'border:1px solid #fff',
+			'background:rgba(0,0,0,0.55)',
+			'color:#fff',
+		].join( ';' );
+
+		// Creates an <a rel="ar"> link styled to look like a button.
+		// Safari uses this anchor to trigger Apple Quick Look AR.
+		// The anchor must contain at least one <img> child (Apple requirement).
+		function createQuickLookButton( src ) {
+
+			const link = document.createElement( 'a' );
+			link.setAttribute( 'rel', 'ar' );
+			link.href = src;
+			link.style.cssText = quickLookStyle;
+			link.textContent = 'VIEW IN AR';
+
+			// Safari requires an <img> child to activate Quick Look.
+			// A 1×1 transparent GIF (base64) satisfies the requirement invisibly.
+			const img = document.createElement( 'img' );
+			img.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;';
+			img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+			link.appendChild( img );
+
+			return link;
+
+		}
 
 		if ( 'xr' in navigator ) {
 
@@ -74,6 +125,13 @@ export class ARButton {
 
 						} );
 
+					} else if ( supportsQuickLook && sessionInit.iosQuickLookSrc ) {
+
+						// iOS Safari recognises the XR API but does not support
+						// immersive-ar.  Fall back to Apple Quick Look AR.
+						const link = createQuickLookButton( sessionInit.iosQuickLookSrc );
+						button.replaceWith( link );
+
 					} else {
 
 						button.textContent = 'AR NOT SUPPORTED';
@@ -96,6 +154,17 @@ export class ARButton {
 					button.disabled = true;
 
 				} );
+
+		} else if ( supportsQuickLook && sessionInit.iosQuickLookSrc ) {
+
+			// No WebXR API at all (older iOS Safari).  Replace the placeholder
+			// button with a Quick Look link once it has been added to the DOM.
+			Promise.resolve().then( () => {
+
+				const link = createQuickLookButton( sessionInit.iosQuickLookSrc );
+				if ( button.parentNode ) button.replaceWith( link );
+
+			} );
 
 		} else {
 

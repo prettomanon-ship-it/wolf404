@@ -30,6 +30,9 @@ document.body.appendChild(
 	ARButton.createButton( renderer, {
 		optionalFeatures: [ 'hit-test', 'dom-overlay' ],
 		domOverlay: { root: document.body },
+		// Fallback for iOS Safari, which does not support WebXR immersive-ar.
+		// Triggers Apple Quick Look AR with the main model when tapped.
+		iosQuickLookSrc: 'embryon404_cable_texture-v1.glb',
 	} )
 );
 
