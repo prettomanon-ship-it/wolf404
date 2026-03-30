@@ -62,6 +62,7 @@ scene.add(backRim);
 // Holds the live model once loaded, for scale animation.
 let breathingModel     = null;
 let breathingBaseScale = 1;
+let breathingBasePos   = null; // base position for glitch jitter
 
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
@@ -71,6 +72,112 @@ const BREATH_EXPOSURE_AMP  = 0.04;  // ±0.04 exposure – subliminal light vari
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
 const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
 
+// ── Glitch / hologram anomaly ──────────────────────────────────────────────
+// Simulates a degraded hologram that crackles, flickers, and jolts.
+const GLITCH_INTERVAL_MIN      = 2.0;   // min quiet seconds between bursts
+const GLITCH_INTERVAL_MAX      = 7.0;   // max quiet seconds between bursts
+const GLITCH_BURST_MIN         = 0.06;  // min burst duration  (s)
+const GLITCH_BURST_MAX         = 0.24;  // max burst duration  (s)
+const GLITCH_INVISIBLE_CHANCE  = 0.45;  // probability of near-invisible frame
+const GLITCH_INVISIBLE_MAX     = 0.18;  // max opacity during near-invisible flash
+const GLITCH_VISIBLE_MIN       = 0.78;  // min opacity during mostly-visible frame
+const GLITCH_VISIBLE_RANGE     = 0.22;  // opacity range above GLITCH_VISIBLE_MIN
+const GLITCH_JITTER_X_AMP      = 0.04;  // X positional jolt amplitude (scene units)
+const GLITCH_JITTER_Y_AMP      = 0.02;  // Y positional jolt amplitude (scene units)
+const GLITCH_EXPOSURE_CHANCE   = 0.35;  // probability of exposure spike per frame
+const GLITCH_EXPOSURE_RANGE    = 2.0;   // total range of exposure spike variation
+const GLITCH_EXPOSURE_OFFSET   = 0.6;   // negative bias so spikes can go below base
+const GLITCH_FILTER_CHANCE     = 0.3;   // probability of hue/brightness anomaly per frame
+const GLITCH_HUE_RANGE         = 50;    // ±hue-rotate degrees during anomaly
+const GLITCH_BRIGHTNESS_MIN    = 0.4;   // min brightness multiplier during anomaly
+const GLITCH_BRIGHTNESS_RANGE  = 1.2;   // brightness range above GLITCH_BRIGHTNESS_MIN
+const DEFAULT_FRAME_TIME       = 0.016; // assumed dt (s) for the very first frame
+
+let glitchClock     = 0;           // accumulated real-time seconds
+let glitchNextBurst = 3.0;         // first glitch fires ~3 s after load
+let glitchBurstEnd  = 0;
+let glitchBurstOn   = false;
+let glitchJitterX   = 0;
+let glitchJitterY   = 0;
+const glitchMats    = [];          // cached transparent materials on the model
+
+function collectGlitchMaterials(root) {
+  root.traverse(child => {
+    if (!child.isMesh) return;
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    mats.forEach(m => {
+      m.transparent = true;
+      if (!glitchMats.includes(m)) glitchMats.push(m);
+    });
+  });
+}
+
+function setGlitchOpacity(v) {
+  glitchMats.forEach(m => { m.opacity = v; });
+}
+
+function scheduleGlitch() {
+  glitchNextBurst = glitchClock
+    + GLITCH_INTERVAL_MIN
+    + Math.random() * (GLITCH_INTERVAL_MAX - GLITCH_INTERVAL_MIN);
+}
+
+function tickGlitch(dt) {
+  glitchClock += dt;
+
+  if (!glitchBurstOn) {
+    if (glitchClock >= glitchNextBurst) {
+      // Start a new burst
+      glitchBurstOn = true;
+      glitchBurstEnd = glitchClock
+        + GLITCH_BURST_MIN
+        + Math.random() * (GLITCH_BURST_MAX - GLITCH_BURST_MIN);
+    } else {
+      // Idle – restore clean state
+      setGlitchOpacity(1.0);
+      glitchJitterX = 0;
+      glitchJitterY = 0;
+      container.style.filter = '';
+      return;
+    }
+  }
+
+  if (glitchClock >= glitchBurstEnd) {
+    // End burst
+    glitchBurstOn = false;
+    setGlitchOpacity(1.0);
+    glitchJitterX = 0;
+    glitchJitterY = 0;
+    container.style.filter = '';
+    scheduleGlitch();
+    return;
+  }
+
+  // ── Active burst: rapid stutter flickering ─────────────────────────────
+  // Opacity: mostly near-invisible or fully visible, rarely mid-range
+  const opv = Math.random() < GLITCH_INVISIBLE_CHANCE
+    ? Math.random() * GLITCH_INVISIBLE_MAX                         // near-invisible flash
+    : GLITCH_VISIBLE_MIN + Math.random() * GLITCH_VISIBLE_RANGE;   // mostly-visible frame
+  setGlitchOpacity(opv);
+
+  // Small positional jolt
+  glitchJitterX = (Math.random() - 0.5) * GLITCH_JITTER_X_AMP;
+  glitchJitterY = (Math.random() - 0.5) * GLITCH_JITTER_Y_AMP;
+
+  // Occasional exposure spike + hue/brightness anomaly
+  if (Math.random() < GLITCH_EXPOSURE_CHANCE) {
+    renderer.toneMappingExposure =
+      BREATH_EXPOSURE_BASE + (Math.random() * GLITCH_EXPOSURE_RANGE - GLITCH_EXPOSURE_OFFSET);
+  }
+  if (Math.random() < GLITCH_FILTER_CHANCE) {
+    const hue = ((Math.random() - 0.5) * GLITCH_HUE_RANGE).toFixed(1);
+    const bri = (GLITCH_BRIGHTNESS_MIN + Math.random() * GLITCH_BRIGHTNESS_RANGE).toFixed(2);
+    container.style.filter = `hue-rotate(${hue}deg) brightness(${bri})`;
+  } else {
+    container.style.filter = '';
+  }
+}
+
 // ── Slow organic drift ─────────────────────────────────────────────────────
 const SWAY_AMPLITUDE_Y  = 0.18;  // vertical displacement
 const SWAY_AMPLITUDE_X  = 0.08;  // lateral displacement
@@ -79,10 +186,13 @@ const SWAY_FREQUENCY_X  = 0.4;   // X oscillation – different rate for organic
 const SWAY_DAMPING      = 0.01;  // lerp factor toward target sway position
 
 let time = 0;
+let lastTimestamp = 0;
 
 // ── Animate (start immediately so background renders while model loads) ────
-function animate() {
+function animate(timestamp) {
   requestAnimationFrame(animate);
+  const dt = lastTimestamp === 0 ? DEFAULT_FRAME_TIME : Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+  lastTimestamp = timestamp;
   time += 0.0008;
 
   // Gentle camera sway
@@ -96,14 +206,25 @@ function animate() {
     );
   }
 
-  // Subtle exposure drift – almost invisible light variation
-  renderer.toneMappingExposure =
-    BREATH_EXPOSURE_BASE + Math.sin(time * BREATH_EXPOSURE_FREQ) * BREATH_EXPOSURE_AMP;
+  // Subtle exposure drift – almost invisible light variation (overridden during glitches)
+  if (!glitchBurstOn) {
+    renderer.toneMappingExposure =
+      BREATH_EXPOSURE_BASE + Math.sin(time * BREATH_EXPOSURE_FREQ) * BREATH_EXPOSURE_AMP;
+  }
+
+  // Glitch / hologram anomaly tick
+  tickGlitch(dt);
+
+  // Apply glitch jitter to model position
+  if (breathingModel && breathingBasePos) {
+    breathingModel.position.x = breathingBasePos.x + glitchJitterX;
+    breathingModel.position.y = breathingBasePos.y + glitchJitterY;
+  }
 
   controls.update();
   renderer.render(scene, camera);
 }
-animate();
+animate(0);
 
 // ── Resize ─────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
@@ -151,6 +272,8 @@ loader.load(
 
     breathingModel     = model;
     breathingBaseScale = model.scale.x;
+    breathingBasePos   = model.position.clone();
+    collectGlitchMaterials(model);
 
     fadeIn();
   },
