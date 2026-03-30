@@ -8,13 +8,14 @@
 </head>
 <body>
   <div id="canvas-container"></div>
+  <div id="loading">Chargement…</div>
 
-  <!-- Three.js core -->
+  <!-- Three.js core (self-hosted to avoid CDN failures) -->
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        "three": "./libs/three/build/three.module.min.js",
+        "three/addons/": "./libs/three/examples/jsm/"
       }
     }
   </script>

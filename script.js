@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // ── Scene ──────────────────────────────────────────────────────────────────
 const container = document.getElementById('canvas-container');
+const loadingEl = document.getElementById('loading');
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -37,7 +38,24 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
 dirLight.position.set(5, 5, 5);
 scene.add(dirLight);
 
-// ── Load model ─────────────────────────────────────────────────────────────
+// ── Animate (start immediately so background renders while model loads) ────
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── Resize ─────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Wait for MeshoptDecoder WASM, then load model ──────────────────────────
+await MeshoptDecoder.ready;
+
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
 console.log('starting GLB load');
@@ -65,24 +83,12 @@ loader.load(
 
     controls.target.copy(center);
     controls.update();
+
+    loadingEl.classList.add('hidden');
   },
   undefined,
   (error) => {
     console.error('GLB loading error:', error);
+    loadingEl.textContent = 'Erreur de chargement';
   }
 );
-
-// ── Animate ────────────────────────────────────────────────────────────────
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-// ── Resize ─────────────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
