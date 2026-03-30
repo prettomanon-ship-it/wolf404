@@ -7,6 +7,21 @@ import { ARButton } from 'three/addons/webxr/ARButton.js';
 
 const instructionEl = document.getElementById( 'ar-instruction' );
 
+// ── Intro overlay ─────────────────────────────────────────────────────────────
+// Display the overlay for ~2.5 s then fade it out smoothly.
+const introOverlay = document.getElementById( 'intro-overlay' );
+if ( introOverlay ) {
+
+	setTimeout( () => {
+
+		introOverlay.style.transition = 'opacity 0.9s ease';
+		introOverlay.style.opacity = '0';
+		introOverlay.addEventListener( 'transitionend', () => introOverlay.remove(), { once: true } );
+
+	}, 2500 );
+
+}
+
 // ── Renderer ────────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
 renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
