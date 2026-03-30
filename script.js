@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // ── Scene ──────────────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ scene.add(dirLight);
 
 // ── Load model ─────────────────────────────────────────────────────────────
 const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
 console.log('starting GLB load');
 loader.load(
   'embryon404_cable_texture-v1.glb',
