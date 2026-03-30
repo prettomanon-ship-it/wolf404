@@ -12,7 +12,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 3.0;
+renderer.toneMappingExposure = 2.5;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -38,23 +38,27 @@ controls.autoRotateSpeed = 0.06;
 controls.enablePan = false;
 
 // ── Lighting ───────────────────────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(0x223366, 3.0);
+// Ambient toned down so the original texture is no longer drowned in blue
+const ambient = new THREE.AmbientLight(0x111828, 1.2);
 scene.add(ambient);
 
-const rimLight = new THREE.DirectionalLight(0x3366ff, 4.0);
+// Rim stays blue for the holographic silhouette, just less overpowering
+const rimLight = new THREE.DirectionalLight(0x3366ff, 2.5);
 rimLight.position.set(-3, 2, -4);
 scene.add(rimLight);
 
-const fillLight = new THREE.DirectionalLight(0x112244, 2.0);
+// Fill shifted to neutral grey-blue so texture detail is visible
+const fillLight = new THREE.DirectionalLight(0x556677, 2.0);
 fillLight.position.set(4, -1, 3);
 scene.add(fillLight);
 
-const keyLight = new THREE.DirectionalLight(0x4466cc, 3.5);
+// Key light made more neutral to reveal surface texture
+const keyLight = new THREE.DirectionalLight(0x7799bb, 2.2);
 keyLight.position.set(0, 3, 5);
 scene.add(keyLight);
 
 // Extra back rim to silhouette the creature from all distances
-const backRim = new THREE.DirectionalLight(0x112255, 1.5);
+const backRim = new THREE.DirectionalLight(0x112255, 1.2);
 backRim.position.set(2, -2, -5);
 scene.add(backRim);
 
@@ -67,7 +71,7 @@ let breathingBasePos   = null; // base position for glitch jitter
 const BREATH_FREQUENCY     = 13;    // time-multiplier → ≈ 10 s cycle at 60 fps
                                     // period = 2π / (13 × 0.0008 × 60) ≈ 10 s
 const BREATH_SCALE_AMP     = 0.006; // ±0.6 % scale – subliminal presence cue
-const BREATH_EXPOSURE_BASE = 3.0;
+const BREATH_EXPOSURE_BASE = 2.5;
 const BREATH_EXPOSURE_AMP  = 0.06;  // ±0.06 exposure – subliminal light variation
 // 0.61 ≈ inverse golden ratio: keeps exposure and scale out of harmonic sync
 const BREATH_EXPOSURE_FREQ = BREATH_FREQUENCY * 0.61;
