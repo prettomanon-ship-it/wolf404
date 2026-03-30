@@ -202,6 +202,7 @@ loader.load(
 		const model = gltf.scene;
 		fitAndCenter( model, 2.8 );
 		archGroup.add( model );
+		console.log( 'Arch loaded successfully' );
 
 	},
 	undefined,
