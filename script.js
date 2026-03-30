@@ -72,8 +72,8 @@ scene.add(compositionGroup);
 
 // Wolf — left of embryo, on ground, facing toward embryo / viewer.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set(-1.3, 0, -0.5);
-wolfGroup.rotation.y = Math.atan2(1.3, 0.5); // face toward embryo
+wolfGroup.position.set(-2.2, 0, -0.5);
+wolfGroup.rotation.y = Math.atan2(2.2, 0.5); // face toward embryo
 compositionGroup.add(wolfGroup);
 
 // Flore — connective ground layer between wolf and embryo.
@@ -84,13 +84,13 @@ compositionGroup.add(floreGroup);
 
 // Arch — organic threshold, angled to open toward wolf and embryo.
 const archGroup = new THREE.Group();
-archGroup.position.set(1.0, 0, 0.3);
+archGroup.position.set(1.8, 0, 1.2);
 archGroup.rotation.y = -Math.PI * 0.2;
 compositionGroup.add(archGroup);
 
 // Embryo — elevated so it floats above the ground-level models.
 const embryoGroup = new THREE.Group();
-embryoGroup.position.set(0, 0.6, 0);
+embryoGroup.position.set(0, 0.6, -1.0);
 compositionGroup.add(embryoGroup);
 
 // ── Helper: scale to target height, rest base on y = 0 (local space) ───────
@@ -342,11 +342,12 @@ loader.load(
     console.log('GLB added to scene');
 
     // Frame camera to encompass the full composition.
-    // Approximate bounds: x ≈ [-2.6, 2.4], y ≈ [0, 2.8], z ≈ [-1.0, 1.0].
+    // Approximate bounds (group positions + model extents):
+    //   x ≈ [-3.5, 3.2], y ≈ [0, 2.8], z ≈ [-2.0, 2.0].
     // A fixed position is used so all elements are readable at once on both
     // desktop (landscape) and mobile (portrait).
     const SCENE_CENTER = new THREE.Vector3(-0.2, 1.0, 0);
-    camera.position.set(0, 1.4, 9);
+    camera.position.set(0, 1.4, 10);
     camera.near = 0.01;
     camera.far = 200;
     camera.updateProjectionMatrix();
