@@ -80,7 +80,7 @@ let modelReady = false;
 const TARGET_HEIGHT = 1.8;
 
 // ── Spatial composition ───────────────────────────────────────────────────────
-// modelGroup is anchored 1.2 m in front of the camera on tap, and oriented
+// modelGroup is anchored 2.0 m in front of the camera on tap, and oriented
 // so its +Z faces toward the user.  Its origin is lifted 0.6 m above the
 // detected floor so the embryo floats at chest height.
 // Ground level in modelGroup local space is therefore y = -0.6.
@@ -100,8 +100,10 @@ modelGroup.add( embryoGroup );
 // Sub-group for wolf — off-left and slightly forward, angled instinctively.
 // AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
 // is slightly steeper than in script.js to feel natural at arm's length.
+// y = -0.7 sinks the group slightly below the modelGroup origin so the wolf's
+// visual paws sit flush on the detected floor plane.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.7, - 0.6, 0.4 );
+wolfGroup.position.set( - 2.7, - 0.7, 0.4 );
 wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
@@ -113,11 +115,13 @@ floreGroup.position.set( - 0.6, - 0.6, 1.1 );
 floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — backdrop threshold to the right, kept within the
-// device FOV by limiting the lateral offset.  At a 1.2 m placement distance
-// x = 1.5 puts the arch at ~34° off-centre — safely inside most phone cameras.
+// Sub-group for arch — threshold to the right and slightly in front of the
+// scene centre so it is within the camera FOV when the scene is placed.
+// At a 2.0 m placement distance, x = 0.8 puts the arch at ~28° off-centre —
+// comfortably inside most phone cameras.  z = 0.5 brings it forward of the
+// scene origin, towards the user, ensuring it is visible without panning.
 const archGroup = new THREE.Group();
-archGroup.position.set( 1.5, - 0.6, - 1.0 );
+archGroup.position.set( 0.8, - 0.6, 0.5 );
 // Angle opens toward the left / centre without mirroring the composition exactly.
 archGroup.rotation.y = - 0.5;
 modelGroup.add( archGroup );
@@ -238,7 +242,7 @@ controller.addEventListener( 'select', () => {
 	const MIN_FORWARD_SQ = 0.0001;
 	if ( forward.lengthSq() > MIN_FORWARD_SQ ) forward.normalize();
 
-	const PLACE_DISTANCE = 1.2; // metres
+	const PLACE_DISTANCE = 2.0; // metres
 
 	modelGroup.position.set(
 		cameraWorldPos.x + forward.x * PLACE_DISTANCE,
