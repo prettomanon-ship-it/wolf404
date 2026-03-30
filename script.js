@@ -66,31 +66,32 @@ scene.add(backRim);
 // ── Spatial composition ────────────────────────────────────────────────────
 // A single group holds all scene elements so the camera frames them together.
 // Floor is implied at y = 0; the embryo is elevated to float above the others.
-// Layout mirrors the AR scene so the two experiences look coherent.
+// Positions and rotations are intentionally asymmetric — nothing is centred
+// or mirrored. The goal is a scene that feels grown, not arranged.
 const compositionGroup = new THREE.Group();
 scene.add(compositionGroup);
 
-// Wolf — left of embryo, on ground, facing toward embryo / viewer.
+// Wolf — off-left, angled instinctively rather than aimed at the embryo.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set(-3.5, 0, -0.5);
-wolfGroup.rotation.y = Math.atan2(3.5, 0.5); // face toward embryo
+wolfGroup.position.set(-2.9, 0, 0.8);
+wolfGroup.rotation.y = 1.2; // ~69° — faces loosely toward scene without precise aim
 compositionGroup.add(wolfGroup);
 
-// Flore — connective ground layer between wolf and embryo.
+// Flore — ground anchor pulled toward wolf's side, slightly embedded below floor.
 const floreGroup = new THREE.Group();
-floreGroup.position.set(-0.6, 0, -0.2);
-floreGroup.rotation.y = Math.PI; // face toward viewer
+floreGroup.position.set(-1.7, -0.05, 0.4);
+floreGroup.rotation.y = 3.7; // ~212° — turned away from viewer, subtle ground presence
 compositionGroup.add(floreGroup);
 
-// Arch — organic threshold, angled to open toward wolf and embryo.
+// Arch — closer in and angled as a presence, not a distant backdrop.
 const archGroup = new THREE.Group();
-archGroup.position.set(5.5, 0, 4.0);
-archGroup.rotation.y = -Math.PI * 0.2;
+archGroup.position.set(4.4, 0, 1.7);
+archGroup.rotation.y = -0.7;
 compositionGroup.add(archGroup);
 
-// Embryo — elevated so it floats above the ground-level models.
+// Embryo — focal point, floats off the exact centre to avoid forced symmetry.
 const embryoGroup = new THREE.Group();
-embryoGroup.position.set(0, 0.6, -1.0);
+embryoGroup.position.set(0.3, 0.55, -0.6);
 compositionGroup.add(embryoGroup);
 
 // ── Helper: scale to target height, rest base on y = 0 (local space) ───────
@@ -343,11 +344,11 @@ loader.load(
 
     // Frame camera to encompass the full composition.
     // Approximate bounds (group positions + model extents):
-    //   x ≈ [-5.0, 7.0], y ≈ [0, 2.8], z ≈ [-2.0, 5.0].
+    //   x ≈ [-4.5, 6.0], y ≈ [0, 2.5], z ≈ [-1.5, 3.5].
     // A fixed position is used so all elements are readable at once on both
     // desktop (landscape) and mobile (portrait).
-    const SCENE_CENTER = new THREE.Vector3(0.8, 1.0, 0.5);
-    camera.position.set(1.0, 1.4, 13);
+    const SCENE_CENTER = new THREE.Vector3(0.5, 0.9, 0.4);
+    camera.position.set(0.8, 1.3, 13);
     camera.near = 0.01;
     camera.far = 200;
     camera.updateProjectionMatrix();

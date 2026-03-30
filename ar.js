@@ -88,36 +88,35 @@ const TARGET_HEIGHT = 1.8;
 //   +X = user's right,  -X = user's left
 //   +Z = toward user,   -Z = further away from user
 //
-// Layout (local coords):
-//   Embryo  ( 0.0,  0.0, -0.3 )  — centre, floating above floor, slightly back
-//   Wolf    (-3.5, -0.6, -0.4 )  — left, on ground, wide spacing from embryo
-//   Flore   ( 0.0, -0.6,  0.7 )  — front-center, connective ground element
-//   Arch    ( 3.5, -0.6,  0.2 )  — far right, detached from the central cluster
+// Positions and rotations are intentionally asymmetric — nothing is centred
+// or mirrored.  The goal is a scene that feels grown into place, not arranged.
 
-// Sub-group for embryo — central, slightly back for depth.
+// Sub-group for embryo — focal point, offset from exact centre.
 const embryoGroup = new THREE.Group();
-embryoGroup.position.set( 0, 0, - 0.3 );
+embryoGroup.position.set( 0.2, 0, - 0.1 );
 modelGroup.add( embryoGroup );
 
-// Sub-group for wolf — placed left of embryo, on ground, wide spacing.
+// Sub-group for wolf — off-left and slightly forward, angled instinctively.
+// AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
+// is slightly steeper than in script.js to feel natural at arm's length.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 3.5, - 0.6, - 0.4 );
-// Rotate to face toward the embryo.
-// dx = 0 - (-3.5) = 3.5,  dz = -0.3 - (-0.4) = 0.1  →  atan2(dx, dz).
-wolfGroup.rotation.y = Math.atan2( 3.5, 0.1 );
+wolfGroup.position.set( - 2.7, - 0.6, 0.4 );
+wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
-// Sub-group for flore — front-center connective ground element.
+// Sub-group for flore — ground anchor shifted left of centre, not centred.
+// 3.6 rad (~206°) keeps it turned away from the user; differs slightly from
+// script.js (3.7) because the AR overhead view reads the angle differently.
 const floreGroup = new THREE.Group();
-floreGroup.position.set( 0.0, - 0.6, 0.7 );
-floreGroup.rotation.y = Math.PI; // face toward the embryo behind it
+floreGroup.position.set( - 0.6, - 0.6, 1.1 );
+floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — far right, opens toward the rest of the composition.
+// Sub-group for arch — closer in, angled as a presence rather than backdrop.
 const archGroup = new THREE.Group();
-archGroup.position.set( 3.5, - 0.6, 0.2 );
-// Mirror the 3D scene rotation so the arch opens toward the left / centre.
-archGroup.rotation.y = - Math.PI * 0.2;
+archGroup.position.set( 3.0, - 0.6, - 0.5 );
+// Angle opens toward the left / centre without mirroring the composition exactly.
+archGroup.rotation.y = - 0.7;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
