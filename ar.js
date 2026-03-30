@@ -93,20 +93,21 @@ const TARGET_HEIGHT = 1.8;
 const wolfGroup = new THREE.Group();
 wolfGroup.position.set( - 1.3, - 0.6, - 0.5 );
 // Rotate to face toward the embryo at origin.
-// dx = 0 - (-1.3) = 1.3,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, -dz).
-wolfGroup.rotation.y = Math.atan2( 1.3, - 0.5 );
+// dx = 0 - (-1.3) = 1.3,  dz = 0 - (-0.5) = 0.5  →  atan2(dx, dz).
+wolfGroup.rotation.y = Math.atan2( 1.3, 0.5 );
 modelGroup.add( wolfGroup );
 
 // Sub-group for flore — connective ground layer between wolf and embryo.
 const floreGroup = new THREE.Group();
 floreGroup.position.set( - 0.6, - 0.6, - 0.3 );
+floreGroup.rotation.y = Math.PI; // face toward the viewer's entry point (+Z)
 modelGroup.add( floreGroup );
 
 // Sub-group for arch — diagonal threshold to the right, closer to user.
 const archGroup = new THREE.Group();
 archGroup.position.set( 0.9, - 0.6, 0.7 );
 // Diagonal rotation so the arch opens toward the embryo / wolf area.
-archGroup.rotation.y = - Math.PI * 0.4;
+archGroup.rotation.y = - Math.PI * 0.2;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
