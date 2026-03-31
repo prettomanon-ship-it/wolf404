@@ -150,10 +150,10 @@ modelGroup.add( embryoGroup );
 // Sub-group for wolf — off-left and slightly forward, angled instinctively.
 // AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
 // is slightly steeper than in script.js to feel natural at arm's length.
-// y = -0.7 sinks the group slightly below the modelGroup origin so the wolf's
-// visual paws sit flush on the detected floor plane.
+// y = -0.9 sinks the wolf further below the modelGroup origin so it reads as
+// grounded on the detected floor plane rather than floating above it.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.7, - 0.7, 0.4 );
+wolfGroup.position.set( - 2.7, - 0.9, 0.4 );
 wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
