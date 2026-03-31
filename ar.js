@@ -147,31 +147,30 @@ const embryoGroup = new THREE.Group();
 embryoGroup.position.set( 0.2, 0, - 0.1 );
 modelGroup.add( embryoGroup );
 
-// Sub-group for wolf — off-left and slightly forward, angled instinctively.
-// AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
-// is slightly steeper than in script.js to feel natural at arm's length.
-// y = -0.7 sinks the group slightly below the modelGroup origin so the wolf's
-// visual paws sit flush on the detected floor plane.
+// Sub-group for wolf — pushed farther left (x: -2.7 → -3.2) and 0.5 m behind
+// the embryo (z: 0.4 → -0.1) so it feels present but not glued to the central
+// cluster.  The backward shift adds diagonal depth and reduces the frontal-stage
+// feeling without making the wolf feel too remote.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.7, - 0.7, 0.4 );
+wolfGroup.position.set( - 3.2, - 0.7, - 0.1 );
 wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
-// Sub-group for flore — ground anchor shifted left of centre, not centred.
-// 3.6 rad (~206°) keeps it turned away from the user; differs slightly from
-// script.js (3.7) because the AR overhead view reads the angle differently.
+// Sub-group for flore — kept closer to the user than the embryo (z: 1.4) and
+// shifted slightly toward centre (x: -0.4) so it reads as a connective ground
+// presence rather than a central marker.
 const floreGroup = new THREE.Group();
-floreGroup.position.set( - 0.6, - 0.6, 1.1 );
+floreGroup.position.set( - 0.4, - 0.6, 1.4 );
 floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — threshold to the right and slightly in front of the
-// scene centre so it is within the camera FOV when the scene is placed.
-// At a 2.0 m placement distance, x = 0.8 puts the arch at ~28° off-centre —
-// comfortably inside most phone cameras.  z = 0.5 brings it forward of the
-// scene origin, towards the user, ensuring it is visible without panning.
+// Sub-group for arch — moved farther to the right (x: 0.8 → 1.8) and pushed
+// 1.0 m backward in depth (z: 0.5 → -0.5) so it reads as a peripheral threshold
+// rather than part of the central flat plane.  At a 2.0 m placement distance,
+// x = 1.8 puts the arch at ~42° off-centre, which remains within the typical
+// phone camera FOV while clearly detaching it from the embryo cluster.
 const archGroup = new THREE.Group();
-archGroup.position.set( 0.8, - 0.6, 0.5 );
+archGroup.position.set( 1.8, - 0.6, - 0.5 );
 // Angle opens toward the left / centre without mirroring the composition exactly.
 archGroup.rotation.y = - 0.5;
 modelGroup.add( archGroup );
