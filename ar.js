@@ -81,9 +81,8 @@ if ( supportsQuickLook ) {
 	orbitControls.maxDistance = 30;
 	orbitControls.enablePan = true;
 	// Position camera to see the full composed scene once models load.
-	// Scene spans x ≈ [-3.0, 5.0], y ≈ [0, 2.5], z ≈ [-2.0, 3.0].
-	camera.position.set( 0.8, 1.3, 9 );
-	orbitControls.target.set( 0.8, 0.9, 0.5 );
+	camera.position.set( 0, 1.5, 9 );
+	orbitControls.target.set( 0, 0.5, 0 );
 	orbitControls.update();
 }
 
@@ -143,32 +142,38 @@ const TARGET_HEIGHT = 1.8;
 // Positions and rotations are intentionally asymmetric — nothing is centred
 // or mirrored.  The goal is a scene that feels grown into place, not arranged.
 
-// Sub-group for embryo — focal point, slightly more off-centre and fractionally higher than the floor plane.
+// Sub-group for embryo — focal point, offset from exact centre.
 const embryoGroup = new THREE.Group();
-embryoGroup.position.set( 0.4, 0, - 0.3 );
+embryoGroup.position.set( 0.2, 0, - 0.1 );
 modelGroup.add( embryoGroup );
 
-// Sub-group for wolf — pushed far forward and left, rotation has no clean aim — instinct, not intention.
-// AR perspective uses the same angle as script.js (0.93 rad, ~53°).
+// Sub-group for wolf — off-left and slightly forward, angled instinctively.
+// AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
+// is slightly steeper than in script.js to feel natural at arm's length.
 // y = -0.7 sinks the group slightly below the modelGroup origin so the wolf's
 // visual paws sit flush on the detected floor plane.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.3, - 0.7, 1.9 );
-wolfGroup.rotation.y = 0.93;
+wolfGroup.position.set( - 2.7, - 0.7, 0.4 );
+wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
-// Sub-group for flore — ground anchor on the right-forward side; breaks the wolf→embryo axis entirely.
-// 4.9 rad (~281°) keeps it turned sideways, low and quiet — matches script.js.
+// Sub-group for flore — ground anchor shifted left of centre, not centred.
+// 3.6 rad (~206°) keeps it turned away from the user; differs slightly from
+// script.js (3.7) because the AR overhead view reads the angle differently.
 const floreGroup = new THREE.Group();
-floreGroup.position.set( 1.3, - 0.6, 1.1 );
-floreGroup.rotation.y = 4.9;
+floreGroup.position.set( - 0.6, - 0.6, 1.1 );
+floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
-// Sub-group for arch — pulled back behind the embryo plane so it rises from depth, not from the side.
-// Angle opens toward the left / centre without mirroring the composition exactly — matches script.js.
+// Sub-group for arch — threshold to the right and slightly in front of the
+// scene centre so it is within the camera FOV when the scene is placed.
+// At a 2.0 m placement distance, x = 0.8 puts the arch at ~28° off-centre —
+// comfortably inside most phone cameras.  z = 0.5 brings it forward of the
+// scene origin, towards the user, ensuring it is visible without panning.
 const archGroup = new THREE.Group();
-archGroup.position.set( 3.4, - 0.6, - 1.0 );
-archGroup.rotation.y = - 0.55;
+archGroup.position.set( 0.8, - 0.6, 0.5 );
+// Angle opens toward the left / centre without mirroring the composition exactly.
+archGroup.rotation.y = - 0.5;
 modelGroup.add( archGroup );
 
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
