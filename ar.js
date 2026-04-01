@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 
@@ -36,7 +37,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 100 );
 
 // ── Lighting ─────────────────────────────────────────────────────────────────
-// Neutral lights so the model looks natural against the real-world background.
+// Neutral lights so the models look natural against the real-world background.
 const ambient = new THREE.AmbientLight( 0xffffff, 2.5 );
 scene.add( ambient );
 
@@ -49,7 +50,7 @@ fillLight.position.set( - 1, 0, - 1 );
 scene.add( fillLight );
 
 // ── Surface-detection reticle ────────────────────────────────────────────────
-// Thin ring that tracks the hit-test result and shows where the model will land.
+// Thin ring that tracks the hit-test result and shows where the scene will land.
 const reticleGeometry = new THREE.RingGeometry( 0.1, 0.12, 32 );
 reticleGeometry.rotateX( - Math.PI / 2 );
 const reticle = new THREE.Mesh(
@@ -60,59 +61,121 @@ reticle.matrixAutoUpdate = false;
 reticle.visible = false;
 scene.add( reticle );
 
-// ── Model group ──────────────────────────────────────────────────────────────
-// Wrapping the model in a Group lets us set a clean base-position after the
-// bounding-box centering offsets are baked into the child model's transform.
-const modelGroup = new THREE.Group();
-modelGroup.visible = false;
-scene.add( modelGroup );
+// ── Composition group ────────────────────────────────────────────────────────
+// Mirrors the spatial layout used in the 3D view (script.js).
+// A global scale factor shrinks the whole composition to a real-world size
+// that fits comfortably in an indoor space (~2 m wide).
+const SCENE_SCALE = 0.22;
 
+const compositionGroup = new THREE.Group();
+compositionGroup.visible = false;
+compositionGroup.scale.setScalar( SCENE_SCALE );
+scene.add( compositionGroup );
+
+// Sub-groups — same positions / rotations as script.js.
+const wolfGroup = new THREE.Group();
+wolfGroup.position.set( - 2.3, - 0.7, 1.9 );
+wolfGroup.rotation.y = 0.93;
+compositionGroup.add( wolfGroup );
+
+const floreGroup = new THREE.Group();
+floreGroup.position.set( 1.3, - 0.4, 1.1 );
+floreGroup.rotation.y = 4.9;
+compositionGroup.add( floreGroup );
+
+const archGroup = new THREE.Group();
+archGroup.position.set( 3.4, 0, - 1.0 );
+archGroup.rotation.y = - 0.55;
+compositionGroup.add( archGroup );
+
+const embryoGroup = new THREE.Group();
+embryoGroup.position.set( 0.4, 0.6, - 0.3 );
+compositionGroup.add( embryoGroup );
+
+// Track how many models have finished loading so we can mark the scene ready.
+let modelsLoaded = 0;
+const TOTAL_MODELS = 4;
 let placed = false;
-let modelReady = false;
 
-// Target real-world height for the creature (metres).  40 cm is a good
-// "desktop-sized" presence that looks neither tiny nor overwhelming.
-const TARGET_HEIGHT = 0.4;
+function onModelLoaded() {
+	modelsLoaded += 1;
+	if ( modelsLoaded === TOTAL_MODELS ) {
+		instructionEl.textContent = 'Point camera at a flat surface, then tap to place';
+	}
+}
 
-// ── Load GLB ─────────────────────────────────────────────────────────────────
+// ── Helper: scale to target height, rest base on y = 0 (local space) ────────
+function fitAndCenter( model, targetHeight ) {
+	const box = new THREE.Box3().setFromObject( model );
+	const size = box.getSize( new THREE.Vector3() );
+	model.scale.setScalar( targetHeight / ( Math.max( size.x, size.y, size.z ) || 1 ) );
+	box.setFromObject( model );
+	const center = box.getCenter( new THREE.Vector3() );
+	model.position.set( - center.x, - box.min.y, - center.z );
+}
+
+// ── Load all GLBs ─────────────────────────────────────────────────────────────
 await MeshoptDecoder.ready;
 
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath( './libs/three/examples/jsm/libs/draco/gltf/' );
+
 const loader = new GLTFLoader();
+loader.setDRACOLoader( dracoLoader );
 loader.setMeshoptDecoder( MeshoptDecoder );
+
+function onModelError( name, error ) {
+	console.error( name + ' loading error:', error );
+	instructionEl.textContent = 'Failed to load model: ' + name;
+	instructionEl.style.display = 'block';
+}
 
 loader.load(
 	'embryon404_cable_texture-v1.glb',
 	( gltf ) => {
-
 		const model = gltf.scene;
-
-		// Scale so the tallest dimension equals TARGET_HEIGHT metres.
-		const box = new THREE.Box3().setFromObject( model );
-		const size = box.getSize( new THREE.Vector3() );
-		const maxDim = Math.max( size.x, size.y, size.z ) || 1;
-		model.scale.setScalar( TARGET_HEIGHT / maxDim );
-
-		// Re-compute the box after scaling, then center horizontally and
-		// push the model upward so its base sits exactly at y = 0 (ground plane).
-		box.setFromObject( model );
-		const center = box.getCenter( new THREE.Vector3() );
-		model.position.set( - center.x, - box.min.y, - center.z );
-
-		modelGroup.add( model );
-		modelReady = true;
-
-		// Update text so it's ready for when the AR session starts.
-		instructionEl.textContent = 'Point camera at a flat surface, then tap to place';
-
+		fitAndCenter( model, 1.8 );
+		embryoGroup.add( model );
+		onModelLoaded();
 	},
 	undefined,
-	( error ) => {
+	( error ) => { onModelError( 'embryo', error ); }
+);
 
-		console.error( 'GLB loading error:', error );
-		instructionEl.textContent = 'Failed to load model';
-		instructionEl.style.display = 'block';
+loader.load(
+	'wolf.glb',
+	( gltf ) => {
+		const model = gltf.scene;
+		fitAndCenter( model, 2.5 );
+		wolfGroup.add( model );
+		onModelLoaded();
+	},
+	undefined,
+	( error ) => { onModelError( 'wolf', error ); }
+);
 
-	}
+loader.load(
+	'flore.glb',
+	( gltf ) => {
+		const model = gltf.scene;
+		fitAndCenter( model, 0.6 );
+		floreGroup.add( model );
+		onModelLoaded();
+	},
+	undefined,
+	( error ) => { onModelError( 'flore', error ); }
+);
+
+loader.load(
+	'arch.glb',
+	( gltf ) => {
+		const model = gltf.scene;
+		fitAndCenter( model, 2.8 );
+		archGroup.add( model );
+		onModelLoaded();
+	},
+	undefined,
+	( error ) => { onModelError( 'arch', error ); }
 );
 
 // ── Controller — tap to place ────────────────────────────────────────────────
@@ -121,11 +184,11 @@ const controller = renderer.xr.getController( 0 );
 
 controller.addEventListener( 'select', () => {
 
-	if ( placed || ! modelReady || ! reticle.visible ) return;
+	if ( placed || modelsLoaded !== TOTAL_MODELS || ! reticle.visible ) return;
 
-	// Snap model group to the hit-test surface position.
-	modelGroup.position.setFromMatrixPosition( reticle.matrix );
-	modelGroup.visible = true;
+	// Snap the composition to the hit-test surface position.
+	compositionGroup.position.setFromMatrixPosition( reticle.matrix );
+	compositionGroup.visible = true;
 	placed = true;
 	reticle.visible = false;
 
@@ -142,12 +205,12 @@ let hitTestSourceRequested = false;
 renderer.xr.addEventListener( 'sessionstart', () => {
 
 	placed = false;
-	modelGroup.visible = false;
+	compositionGroup.visible = false;
 	reticle.visible = false;
 	hitTestSource = null;
 	hitTestSourceRequested = false;
 
-	instructionEl.textContent = modelReady
+	instructionEl.textContent = modelsLoaded === TOTAL_MODELS
 		? 'Point camera at a flat surface, then tap to place'
 		: 'Loading…';
 	instructionEl.style.display = 'block';
