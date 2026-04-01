@@ -40,19 +40,64 @@ renderer.xr.enabled = ! supportsQuickLook;
 document.body.appendChild( renderer.domElement );
 
 // ── AR entry button ─────────────────────────────────────────────────────────
-// On iOS: ARButton detects Quick Look support and creates a <a rel="ar"> link
-// that opens the embryo model in Apple Quick Look for 3D viewing.
-// On Android/Chrome: ARButton starts a WebXR immersive-ar session.
-document.body.appendChild(
-	ARButton.createButton( renderer, {
-		optionalFeatures: [ 'hit-test', 'dom-overlay' ],
-		domOverlay: { root: document.body },
-		// iOS Quick Look fallback — opens the embryo in Apple Quick Look.
-		// Quick Look will show the model in 3D view mode; full AR placement
-		// requires a USDZ version of the model (ios-src not yet available).
-		iosQuickLookSrc: 'embryon404_cable_texture-v1.glb',
-	} )
-);
+// On iOS / Apple devices (Quick Look supported): a dedicated <a rel="ar">
+// button opens the embryo in Apple Quick Look directly, bypassing WebXR
+// entirely.  This avoids the iOS 16+ issue where isSessionSupported returns
+// true for immersive-ar but renderer.xr is disabled, causing a silent failure.
+// On Android / Chrome (WebXR): ARButton starts an immersive-ar session.
+if ( supportsQuickLook ) {
+
+	// Dedicated Quick Look button — the "special button" for Apple devices.
+	// Safari requires the first child of <a rel="ar"> to be an <img> to
+	// activate Quick Look; the 1×1 transparent pixel satisfies this silently.
+	const iosBtn = document.createElement( 'a' );
+	iosBtn.setAttribute( 'rel', 'ar' );
+	iosBtn.href = 'embryon404_cable_texture-v1.glb';
+	iosBtn.style.cssText = [
+		'position:fixed',
+		'bottom:20px',
+		'left:50%',
+		'transform:translateX(-50%)',
+		'padding:12px 24px',
+		'border-radius:4px',
+		"font-family:'Courier New',Courier,monospace",
+		'font-size:13px',
+		'cursor:pointer',
+		'z-index:999',
+		'letter-spacing:0.08em',
+		'text-decoration:none',
+		'display:inline-block',
+		'text-align:center',
+		'border:1px solid #fff',
+		'background:rgba(0,0,0,0.55)',
+		'color:#fff',
+	].join( ';' );
+
+	// Invisible 1×1 image required by Safari as the first child of <a rel="ar">.
+	const img = document.createElement( 'img' );
+	img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+	img.alt = '';
+	img.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+	iosBtn.appendChild( img );
+
+	const label = document.createElement( 'span' );
+	label.textContent = 'VOIR EN AR';
+	iosBtn.appendChild( label );
+	iosBtn.setAttribute( 'aria-label', 'Voir en réalité augmentée' );
+
+	document.body.appendChild( iosBtn );
+
+} else {
+
+	// WebXR AR for Android, Chrome and other non-Apple WebXR-capable browsers.
+	document.body.appendChild(
+		ARButton.createButton( renderer, {
+			optionalFeatures: [ 'hit-test', 'dom-overlay' ],
+			domOverlay: { root: document.body },
+		} )
+	);
+
+}
 
 // ── Scene ───────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
