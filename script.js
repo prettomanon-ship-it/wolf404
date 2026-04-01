@@ -93,17 +93,14 @@ const compositionGroup = new THREE.Group();
 scene.add(compositionGroup);
 
 // Wolf — pushed far forward and left, rotation has no clean aim — instinct, not intention.
-// y = -0.7 offsets for the wolf creature sitting near the top of its bounding box
-// (branches extend far below the body), keeping the creature close to floor level.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set(-2.3, -0.7, 1.9);
+wolfGroup.position.set(-2.3, 0, 1.9);
 wolfGroup.rotation.y = 0.93; // ~53° — angled across the scene, not targeting the embryo
 compositionGroup.add(wolfGroup);
 
 // Flore — ground anchor on the right-forward side; breaks the wolf→embryo axis entirely.
-// y = -0.4 brings the visible cluster closer to the implied floor plane.
 const floreGroup = new THREE.Group();
-floreGroup.position.set(1.3, -0.4, 1.1);
+floreGroup.position.set(1.3, -0.1, 1.1);
 floreGroup.rotation.y = 4.9; // ~281° — turned sideways, low and quiet
 compositionGroup.add(floreGroup);
 
@@ -371,7 +368,7 @@ loader.load(
 
     // Frame camera to encompass the full composition.
     // Approximate bounds (group positions + model extents):
-    //   x ≈ [-3.5, 5.5], y ≈ [-0.7, 2.5], z ≈ [-2.2, 3.2].
+    //   x ≈ [-3.5, 5.5], y ≈ [0, 2.5], z ≈ [-2.2, 3.2].
     // A fixed position is used so all elements are readable at once on both
     // desktop (landscape) and mobile (portrait).
     const SCENE_CENTER = new THREE.Vector3(0.8, 0.9, 0.5);
