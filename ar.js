@@ -150,18 +150,21 @@ modelGroup.add( embryoGroup );
 // Sub-group for wolf — off-left and slightly forward, angled instinctively.
 // AR perspective is closer than the desktop view, so the angle (1.35 rad, ~77°)
 // is slightly steeper than in script.js to feel natural at arm's length.
-// y = -0.9 sinks the wolf further below the modelGroup origin so it reads as
-// grounded on the detected floor plane rather than floating above it.
+// y = -1.7 compensates for the wolf creature sitting near the top of its bounding
+// box (branches extend far below the body), bringing the creature itself down to
+// floor level on the detected surface.
 const wolfGroup = new THREE.Group();
-wolfGroup.position.set( - 2.7, - 0.9, 0.4 );
+wolfGroup.position.set( - 2.7, - 1.7, 0.4 );
 wolfGroup.rotation.y = 1.35;
 modelGroup.add( wolfGroup );
 
 // Sub-group for flore — ground anchor shifted left of centre, not centred.
 // 3.6 rad (~206°) keeps it turned away from the user; differs slightly from
 // script.js (3.7) because the AR overhead view reads the angle differently.
+// y = -0.9 ensures the visible top of the flore cluster sits at floor level
+// rather than floating above the detected surface.
 const floreGroup = new THREE.Group();
-floreGroup.position.set( - 0.6, - 0.6, 1.1 );
+floreGroup.position.set( - 0.6, - 0.9, 1.1 );
 floreGroup.rotation.y = 3.6;
 modelGroup.add( floreGroup );
 
