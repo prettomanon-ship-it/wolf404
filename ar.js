@@ -145,9 +145,9 @@ fillLight.position.set( - 1, 0, - 1 );
 scene.add( fillLight );
 
 // Bottom fill — bounces light upward to reveal underside details and textures.
-const bottomFill = new THREE.DirectionalLight( 0xaaaacc, 1.5 );
-bottomFill.position.set( 0, - 2, 0.5 );
-scene.add( bottomFill );
+const bottomFillLight = new THREE.DirectionalLight( 0xaaaacc, 1.5 );
+bottomFillLight.position.set( 0, - 2, 0.5 );
+scene.add( bottomFillLight );
 
 // ── Surface-detection reticle ────────────────────────────────────────────────
 // Thin ring that tracks the hit-test result and shows where the scene will land.
