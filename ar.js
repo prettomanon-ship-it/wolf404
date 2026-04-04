@@ -34,7 +34,7 @@ renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = supportsQuickLook ? 3.5 : 1.0;
+renderer.toneMappingExposure = supportsQuickLook ? 3.5 : 3.0;
 // Only enable XR on non-iOS devices (WebXR is not supported on iOS Safari).
 renderer.xr.enabled = ! supportsQuickLook;
 document.body.appendChild( renderer.domElement );
@@ -133,16 +133,21 @@ if ( supportsQuickLook ) {
 
 // ── Lighting ─────────────────────────────────────────────────────────────────
 // Neutral lights so the models look natural against the real-world background.
-const ambient = new THREE.AmbientLight( 0xffffff, 2.5 );
+const ambient = new THREE.AmbientLight( 0xffffff, 4.0 );
 scene.add( ambient );
 
-const keyLight = new THREE.DirectionalLight( 0xffffff, 2.0 );
+const keyLight = new THREE.DirectionalLight( 0xffffff, 3.5 );
 keyLight.position.set( 1, 2, 1 );
 scene.add( keyLight );
 
-const fillLight = new THREE.DirectionalLight( 0xcccccc, 1.0 );
+const fillLight = new THREE.DirectionalLight( 0xcccccc, 2.0 );
 fillLight.position.set( - 1, 0, - 1 );
 scene.add( fillLight );
+
+// Bottom fill — bounces light upward to reveal underside details and textures.
+const bottomFillLight = new THREE.DirectionalLight( 0xaaaacc, 1.5 );
+bottomFillLight.position.set( 0, - 2, 0.5 );
+scene.add( bottomFillLight );
 
 // ── Surface-detection reticle ────────────────────────────────────────────────
 // Thin ring that tracks the hit-test result and shows where the scene will land.
