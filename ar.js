@@ -35,6 +35,8 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = supportsQuickLook ? 3.5 : 3.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Only enable XR on non-iOS devices (WebXR is not supported on iOS Safari).
 renderer.xr.enabled = ! supportsQuickLook;
 document.body.appendChild( renderer.domElement );
@@ -138,6 +140,16 @@ scene.add( ambient );
 
 const keyLight = new THREE.DirectionalLight( 0xffffff, 3.5 );
 keyLight.position.set( 1, 2, 1 );
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 1024;
+keyLight.shadow.mapSize.height = 1024;
+keyLight.shadow.camera.near = 0.1;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = - 6;
+keyLight.shadow.camera.right = 6;
+keyLight.shadow.camera.top = 6;
+keyLight.shadow.camera.bottom = - 6;
+keyLight.shadow.bias = - 0.001;
 scene.add( keyLight );
 
 const fillLight = new THREE.DirectionalLight( 0xcccccc, 2.0 );
@@ -226,6 +238,22 @@ archGroup.position.set( 0.8, - 0.6, 0.5 );
 archGroup.rotation.y = - 0.5;
 modelGroup.add( archGroup );
 
+// ── Shadow-receiver plane ─────────────────────────────────────────────────────
+// Transparent ShadowMaterial plane resting at detected floor level (y = -0.6
+// in modelGroup local space, which maps to the real-world surface).
+// It only renders where shadows fall, giving each element a soft contact shadow
+// so they appear anchored to the ground rather than floating.
+const shadowFloorGeo = new THREE.PlaneGeometry( 14, 14 );
+shadowFloorGeo.rotateX( - Math.PI / 2 );
+const shadowFloor = new THREE.Mesh(
+	shadowFloorGeo,
+	new THREE.ShadowMaterial( { opacity: 0.35, transparent: true } )
+);
+shadowFloor.position.y = - 0.6;
+shadowFloor.receiveShadow = true;
+shadowFloor.visible = false; // shown only after scene placement
+modelGroup.add( shadowFloor );
+
 // ── Helper: scale to target height, then center and rest base on y = 0 ───────
 function fitAndCenter( model, targetHeight ) {
 
@@ -238,6 +266,22 @@ function fitAndCenter( model, targetHeight ) {
 	box.setFromObject( model );
 	const center = box.getCenter( new THREE.Vector3() );
 	model.position.set( - center.x, - box.min.y, - center.z );
+
+}
+
+// ── Helper: enable shadow casting and receiving on all meshes ────────────────
+function enableShadows( model ) {
+
+	model.traverse( ( node ) => {
+
+		if ( node.isMesh ) {
+
+			node.castShadow = true;
+			node.receiveShadow = true;
+
+		}
+
+	} );
 
 }
 
@@ -258,6 +302,7 @@ loader.load(
 
 		const model = gltf.scene;
 		fitAndCenter( model, TARGET_HEIGHT );
+		enableShadows( model );
 		embryoGroup.add( model );
 		modelReady = true;
 
@@ -286,6 +331,7 @@ loader.load(
 
 		const model = gltf.scene;
 		fitAndCenter( model, 2.5 );
+		enableShadows( model );
 		wolfGroup.add( model );
 
 	},
@@ -300,6 +346,7 @@ loader.load(
 
 		const model = gltf.scene;
 		fitAndCenter( model, 0.6 );
+		enableShadows( model );
 		floreGroup.add( model );
 
 	},
@@ -314,6 +361,7 @@ loader.load(
 
 		const model = gltf.scene;
 		fitAndCenter( model, 2.8 );
+		enableShadows( model );
 		archGroup.add( model );
 		console.log( 'Arch loaded successfully' );
 
@@ -367,6 +415,7 @@ controller.addEventListener( 'select', () => {
 	modelGroup.visible = true;
 	placed = true;
 	reticle.visible = false;
+	shadowFloor.visible = true;
 
 	instructionEl.style.display = 'none';
 
@@ -386,6 +435,7 @@ renderer.xr.addEventListener( 'sessionstart', () => {
 	placed = false;
 	modelGroup.visible = false;
 	reticle.visible = false;
+	shadowFloor.visible = false;
 	hitTestSource = null;
 	hitTestSourceRequested = false;
 	hitTestEnabled = false;
