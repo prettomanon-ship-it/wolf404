@@ -135,11 +135,18 @@ if ( supportsQuickLook ) {
 
 // ── Lighting ─────────────────────────────────────────────────────────────────
 // Neutral lights so the models look natural against the real-world background.
+
+// Offset of the key light from the placed scene centre (metres).
+// Positive X = user's right, positive Y = up, positive Z = toward user.
+// Extracted as a constant so it is easy to tweak and is used both for the
+// initial position and the dynamic repositioning after AR placement.
+const KEY_LIGHT_OFFSET = new THREE.Vector3( 1, 2, 1 );
+
 const ambient = new THREE.AmbientLight( 0xffffff, 4.0 );
 scene.add( ambient );
 
 const keyLight = new THREE.DirectionalLight( 0xffffff, 3.5 );
-keyLight.position.set( 1, 2, 1 );
+keyLight.position.copy( KEY_LIGHT_OFFSET );
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.width = 1024;
 keyLight.shadow.mapSize.height = 1024;
@@ -151,6 +158,8 @@ keyLight.shadow.camera.top = 6;
 keyLight.shadow.camera.bottom = - 6;
 keyLight.shadow.bias = - 0.001;
 scene.add( keyLight );
+// The target must be in the scene so Three.js keeps its world matrix up to date.
+scene.add( keyLight.target );
 
 const fillLight = new THREE.DirectionalLight( 0xcccccc, 2.0 );
 fillLight.position.set( - 1, 0, - 1 );
@@ -186,6 +195,31 @@ scene.add( modelGroup );
 // frame it right away.  On WebXR devices, placement happens on tap.
 let placed = supportsQuickLook;
 let modelReady = false;
+
+// Track how many of the four models have finished loading.
+// modelReady is only set to true once ALL four are present so that
+// the user cannot tap-to-place a partially assembled scene.
+let modelsLoaded = 0;
+const TOTAL_MODELS = 4;
+
+function onModelLoaded() {
+
+	if ( modelsLoaded >= TOTAL_MODELS ) return; // guard against duplicate calls
+	modelsLoaded += 1;
+	if ( modelsLoaded !== TOTAL_MODELS ) return;
+
+	modelReady = true;
+
+	if ( supportsQuickLook ) {
+		// iOS: scene is already visible; show navigation hint.
+		instructionEl.textContent = 'Drag to explore · pinch to zoom';
+		instructionEl.style.display = 'block';
+	} else {
+		// WebXR: update text so it's ready for when the AR session starts.
+		instructionEl.textContent = 'Tap to place the scene';
+	}
+
+}
 
 // Target real-world height for the embryo (metres).  1.8 m makes the
 // embryo feel present in real space — roughly human-sized and striking.
@@ -247,7 +281,7 @@ const shadowFloorGeo = new THREE.PlaneGeometry( 14, 14 );
 shadowFloorGeo.rotateX( - Math.PI / 2 );
 const shadowFloor = new THREE.Mesh(
 	shadowFloorGeo,
-	new THREE.ShadowMaterial( { opacity: 0.35, transparent: true } )
+	new THREE.ShadowMaterial( { opacity: 0.35, transparent: true, depthWrite: false } )
 );
 shadowFloor.position.y = - 0.6;
 shadowFloor.receiveShadow = true;
@@ -304,16 +338,7 @@ loader.load(
 		fitAndCenter( model, TARGET_HEIGHT );
 		enableShadows( model );
 		embryoGroup.add( model );
-		modelReady = true;
-
-		if ( supportsQuickLook ) {
-			// iOS: scene is already visible; show navigation hint.
-			instructionEl.textContent = 'Drag to explore · pinch to zoom';
-			instructionEl.style.display = 'block';
-		} else {
-			// WebXR: update text so it's ready for when the AR session starts.
-			instructionEl.textContent = 'Tap to place the scene';
-		}
+		onModelLoaded();
 
 	},
 	undefined,
@@ -333,6 +358,7 @@ loader.load(
 		fitAndCenter( model, 2.5 );
 		enableShadows( model );
 		wolfGroup.add( model );
+		onModelLoaded();
 
 	},
 	undefined,
@@ -348,6 +374,7 @@ loader.load(
 		fitAndCenter( model, 0.6 );
 		enableShadows( model );
 		floreGroup.add( model );
+		onModelLoaded();
 
 	},
 	undefined,
@@ -363,6 +390,7 @@ loader.load(
 		fitAndCenter( model, 2.8 );
 		enableShadows( model );
 		archGroup.add( model );
+		onModelLoaded();
 		console.log( 'Arch loaded successfully' );
 
 	},
@@ -411,6 +439,14 @@ controller.addEventListener( 'select', () => {
 	// Negate forward so the scene's +Z axis points back toward the user,
 	// making "left" in local space match the user's left.
 	modelGroup.rotation.y = Math.atan2( - forward.x, - forward.z );
+
+	// Reposition the key light relative to the placed scene so its shadow
+	// camera frustum always covers the composition regardless of where in
+	// AR world-space the user placed it.  The light shines from above-right-
+	// front of the scene centre, matching the desktop viewer's lighting feel.
+	keyLight.position.copy( modelGroup.position ).add( KEY_LIGHT_OFFSET );
+	keyLight.target.position.copy( modelGroup.position );
+	keyLight.target.updateMatrixWorld();
 
 	modelGroup.visible = true;
 	placed = true;
