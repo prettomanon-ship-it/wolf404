@@ -16,10 +16,19 @@ const supportsQuickLook = ( () => {
 	catch ( e ) { return false; }
 } )();
 
+// True on any iOS device regardless of browser (iPhone, iPad, iPod).
+// iOS Chrome / Firefox do not support Quick Look or WebXR, so we show the
+// same OrbitControls 3-D fallback as iOS Safari but with a hint to open
+// in Safari for the full AR experience.
+// iPadOS 13+ reports as desktop Safari ('MacIntel' platform + touch support),
+// so we include that case explicitly.
+const isIOS = /iPad|iPhone|iPod/.test( navigator.userAgent ) ||
+	( navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 );
+
 const instructionEl = document.getElementById( 'ar-instruction' );
 
 // On iOS, show the instruction banner immediately as a loading indicator.
-if ( supportsQuickLook ) {
+if ( supportsQuickLook || isIOS ) {
 	instructionEl.textContent = 'Loading…';
 	instructionEl.style.display = 'block';
 }
@@ -34,11 +43,11 @@ renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = supportsQuickLook ? 3.5 : 3.0;
+renderer.toneMappingExposure = ( supportsQuickLook || isIOS ) ? 3.5 : 3.0;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Only enable XR on non-iOS devices (WebXR is not supported on iOS Safari).
-renderer.xr.enabled = ! supportsQuickLook;
+// Disable XR on iOS (neither Quick Look nor WebXR uses the XR renderer on iOS).
+renderer.xr.enabled = ! supportsQuickLook && ! isIOS;
 document.body.appendChild( renderer.domElement );
 
 // ── AR entry button ─────────────────────────────────────────────────────────
@@ -89,6 +98,14 @@ if ( supportsQuickLook ) {
 
 	document.body.appendChild( iosBtn );
 
+} else if ( isIOS ) {
+
+	// iOS Chrome / Firefox: neither Quick Look nor WebXR is available.
+	// Show the 3-D viewer (OrbitControls are set up below) with a hint
+	// directing the user to Safari where Quick Look AR is supported.
+	instructionEl.textContent = 'Pour voir en AR, ouvrez dans Safari';
+	instructionEl.style.display = 'block';
+
 } else {
 
 	// WebXR AR for Android, Chrome and other non-Apple WebXR-capable browsers.
@@ -104,7 +121,7 @@ if ( supportsQuickLook ) {
 // ── Scene ───────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 // iOS 3D fallback: dark background so the models are legible.
-if ( supportsQuickLook ) scene.background = new THREE.Color( 0x000000 );
+if ( supportsQuickLook || isIOS ) scene.background = new THREE.Color( 0x000000 );
 
 // ── Camera ──────────────────────────────────────────────────────────────────
 // WebXR replaces camera matrices at runtime; the PerspectiveCamera is still
@@ -115,10 +132,11 @@ const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.inner
 // iOS Safari does not support WebXR immersive-ar.  Rather than showing a
 // black screen while waiting for a session that never starts, we enable
 // OrbitControls so the user can explore the full scene in 3D.  The ARButton
-// (replaced by a Quick Look link on iOS) still lets them open the embryo in
-// Apple Quick Look for a single-model preview.
+// (replaced by a Quick Look link on iOS Safari) still lets them open the embryo
+// in Apple Quick Look for a single-model preview.
+// iOS Chrome / Firefox: same 3-D fallback, with a hint to open in Safari.
 let orbitControls = null;
-if ( supportsQuickLook ) {
+if ( supportsQuickLook || isIOS ) {
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 	orbitControls.enableDamping = true;
 	orbitControls.dampingFactor = 0.04;
@@ -188,12 +206,12 @@ scene.add( reticle );
 const modelGroup = new THREE.Group();
 // On iOS the scene is shown immediately as an interactive 3D viewer;
 // on WebXR devices it stays hidden until the user taps to place.
-modelGroup.visible = supportsQuickLook;
+modelGroup.visible = supportsQuickLook || isIOS;
 scene.add( modelGroup );
 
 // On iOS we pre-place the scene at the world origin so OrbitControls can
 // frame it right away.  On WebXR devices, placement happens on tap.
-let placed = supportsQuickLook;
+let placed = supportsQuickLook || isIOS;
 let modelReady = false;
 
 // Track how many of the four models have finished loading.
@@ -211,8 +229,12 @@ function onModelLoaded() {
 	modelReady = true;
 
 	if ( supportsQuickLook ) {
-		// iOS: scene is already visible; show navigation hint.
+		// iOS Safari: scene is already visible; show navigation hint.
 		instructionEl.textContent = 'Drag to explore · pinch to zoom';
+		instructionEl.style.display = 'block';
+	} else if ( isIOS ) {
+		// iOS non-Safari: keep the "open in Safari" hint; the 3-D viewer is live.
+		instructionEl.textContent = 'Pour voir en AR, ouvrez dans Safari';
 		instructionEl.style.display = 'block';
 	} else {
 		// WebXR: update text so it's ready for when the AR session starts.
