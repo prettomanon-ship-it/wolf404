@@ -47,8 +47,27 @@ renderer.toneMappingExposure = ( supportsQuickLook || isIOS ) ? 3.5 : 3.0;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Disable XR on iOS (neither Quick Look nor WebXR uses the XR renderer on iOS).
-renderer.xr.enabled = ! supportsQuickLook && ! isIOS;
+// Will be updated below once the async AR-support check completes.
+renderer.xr.enabled = false;
 document.body.appendChild( renderer.domElement );
+
+// ── WebXR AR support check ───────────────────────────────────────────────────
+// Asynchronously verify that the browser actually supports immersive-ar.
+// Desktop browsers (Chrome/Firefox on macOS, Windows, …) expose navigator.xr
+// but isSessionSupported('immersive-ar') returns false, so on those devices we
+// fall through to the same OrbitControls 3-D viewer used for iOS non-Safari
+// rather than showing a black screen with "AR NOT SUPPORTED".
+const supportsWebXRAR = ( ! supportsQuickLook && ! isIOS )
+	? ( navigator.xr
+		? await navigator.xr.isSessionSupported( 'immersive-ar' ).catch( () => false )
+		: false )
+	: false;
+
+// Apply the definitive XR-enabled flag now that we know whether AR is supported.
+renderer.xr.enabled = supportsWebXRAR;
+
+// True when the browser cannot run immersive-ar and we show a 3-D viewer instead.
+const isDesktopFallback = ! supportsQuickLook && ! isIOS && ! supportsWebXRAR;
 
 // ── AR entry button ─────────────────────────────────────────────────────────
 // On iOS / Apple devices (Quick Look supported): a dedicated <a rel="ar">
@@ -106,7 +125,7 @@ if ( supportsQuickLook ) {
 	instructionEl.textContent = 'Pour voir en AR, ouvrez dans Safari';
 	instructionEl.style.display = 'block';
 
-} else {
+} else if ( supportsWebXRAR ) {
 
 	// WebXR AR for Android, Chrome and other non-Apple WebXR-capable browsers.
 	document.body.appendChild(
@@ -116,27 +135,35 @@ if ( supportsQuickLook ) {
 		} )
 	);
 
+} else {
+
+	// Desktop or other non-AR browser: show a hint to use a compatible device.
+	instructionEl.textContent = 'Pour voir en AR, utilisez Chrome sur Android';
+	instructionEl.style.display = 'block';
+
 }
 
 // ── Scene ───────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
-// iOS 3D fallback: dark background so the models are legible.
-if ( supportsQuickLook || isIOS ) scene.background = new THREE.Color( 0x000000 );
+// iOS / desktop 3D fallback: dark background so the models are legible.
+if ( supportsQuickLook || isIOS || isDesktopFallback ) scene.background = new THREE.Color( 0x000000 );
 
 // ── Camera ──────────────────────────────────────────────────────────────────
 // WebXR replaces camera matrices at runtime; the PerspectiveCamera is still
 // required but its projection is overridden by the headset/device.
 const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 200 );
 
-// ── iOS 3D viewer (OrbitControls fallback) ───────────────────────────────────
+// ── iOS / desktop 3D viewer (OrbitControls fallback) ─────────────────────────
 // iOS Safari does not support WebXR immersive-ar.  Rather than showing a
 // black screen while waiting for a session that never starts, we enable
 // OrbitControls so the user can explore the full scene in 3D.  The ARButton
 // (replaced by a Quick Look link on iOS Safari) still lets them open the embryo
 // in Apple Quick Look for a single-model preview.
 // iOS Chrome / Firefox: same 3-D fallback, with a hint to open in Safari.
+// Desktop browsers (macOS, Windows, …): same 3-D fallback with a hint to use
+// Chrome on Android for the full AR experience.
 let orbitControls = null;
-if ( supportsQuickLook || isIOS ) {
+if ( supportsQuickLook || isIOS || isDesktopFallback ) {
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 	orbitControls.enableDamping = true;
 	orbitControls.dampingFactor = 0.04;
@@ -204,14 +231,14 @@ scene.add( reticle );
 // Wrapping the models in a Group lets us set a clean base-position after the
 // bounding-box centering offsets are baked into the child models' transforms.
 const modelGroup = new THREE.Group();
-// On iOS the scene is shown immediately as an interactive 3D viewer;
+// On iOS / desktop the scene is shown immediately as an interactive 3D viewer;
 // on WebXR devices it stays hidden until the user taps to place.
-modelGroup.visible = supportsQuickLook || isIOS;
+modelGroup.visible = supportsQuickLook || isIOS || isDesktopFallback;
 scene.add( modelGroup );
 
-// On iOS we pre-place the scene at the world origin so OrbitControls can
-// frame it right away.  On WebXR devices, placement happens on tap.
-let placed = supportsQuickLook || isIOS;
+// On iOS / desktop we pre-place the scene at the world origin so OrbitControls
+// can frame it right away.  On WebXR devices, placement happens on tap.
+let placed = supportsQuickLook || isIOS || isDesktopFallback;
 let modelReady = false;
 
 // Track how many of the four models have finished loading.
@@ -235,6 +262,10 @@ function onModelLoaded() {
 	} else if ( isIOS ) {
 		// iOS non-Safari: keep the "open in Safari" hint; the 3-D viewer is live.
 		instructionEl.textContent = 'Pour voir en AR, ouvrez dans Safari';
+		instructionEl.style.display = 'block';
+	} else if ( isDesktopFallback ) {
+		// Desktop / non-AR browser: keep the "use mobile" hint; the 3-D viewer is live.
+		instructionEl.textContent = 'Pour voir en AR, utilisez Chrome sur Android';
 		instructionEl.style.display = 'block';
 	} else {
 		// WebXR: update text so it's ready for when the AR session starts.
