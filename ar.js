@@ -20,7 +20,10 @@ const supportsQuickLook = ( () => {
 // iOS Chrome / Firefox do not support Quick Look or WebXR, so we show the
 // same OrbitControls 3-D fallback as iOS Safari but with a hint to open
 // in Safari for the full AR experience.
-const isIOS = /iPad|iPhone|iPod/.test( navigator.userAgent );
+// iPadOS 13+ reports as desktop Safari ('MacIntel' platform + touch support),
+// so we include that case explicitly.
+const isIOS = /iPad|iPhone|iPod/.test( navigator.userAgent ) ||
+	( navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 );
 
 const instructionEl = document.getElementById( 'ar-instruction' );
 
